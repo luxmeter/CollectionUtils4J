@@ -1,22 +1,25 @@
-package collectionutils;
+package luxmeter.collectionutils;
 
-import static collectionutils.CollectionUtils.NullOrder.NULL_FIRST;
-import static collectionutils.CollectionUtils.SortOrder.ASC;
-import static collectionutils.CollectionUtils.SortOrder.DESC;
-import static collectionutils.CollectionUtils.sortedByKey;
-import static collectionutils.CollectionUtils.sortedByKeys;
-import static collectionutils.CollectionUtils.tuple;
+import static java.util.Comparator.*;
+import static java.util.Comparator.comparing;
+import static luxmeter.collectionutils.ComparableWithSortOrder.*;
+import static luxmeter.collectionutils.NullOrder.NULL_FIRST;
+import static luxmeter.collectionutils.SortOrder.ASC;
+import static luxmeter.collectionutils.SortOrder.DESC;
+import static luxmeter.collectionutils.CollectionUtils.sortedByKey;
+import static luxmeter.collectionutils.CollectionUtils.sortedByKeys;
+import static luxmeter.collectionutils.CollectionUtils.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.junit.Test;
 
-import collectionutils.CollectionUtils.ComparableWithSortOrder;
 import com.google.common.collect.Lists;
 
 public class CollectionUtilsTest {
@@ -115,6 +118,28 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void shouldSortByFirstNameAndMiddleNameInAscendingOrderAndNullFirst2() {
+        List<Person> persons = createPersons();
+
+        List<Person> expected = Lists.newArrayList();
+        expected.add(new Person("Andreas", null, "Pfingsten", 27));
+        expected.add(new Person("Andreas", null, "Guardian", 35));
+        expected.add(new Person("Florian", null, "Uhrmacher", 30));
+        expected.add(new Person("Hans", null, "Dieter", 35));
+        expected.add(new Person("Hans", "Christoph", "Dieter", null));
+        expected.add(new Person("Jason", null, "Vettel", 28));
+        expected.add(new Person("Lena", null, "Oelson", 28));
+        expected.add(new Person("Lena", "Mira", "Eisen", 26));
+        expected.add(new Person("Peter", null, "Dieter", 50));
+
+        assertNotEquals(expected, persons);
+
+        persons.sort(comparing(Person::getFirstName)
+                .thenComparing(comparing(Person::getMiddleName, nullsFirst(naturalOrder()))));
+        assertEquals(expected, persons);
+    }
+
+    @Test
     public void shouldSortByIndividualSortingOrder() {
         List<Person> persons = createPersons();
 
@@ -132,8 +157,8 @@ public class CollectionUtilsTest {
         assertNotEquals(expected, persons);
 
         List<Person> sorted = sortedByKeys(persons, person ->
-                tuple(ComparableWithSortOrder.of(person.getLastName(), DESC),
-                        ComparableWithSortOrder.of(person.getAge(), ASC, NULL_FIRST),
+                tuple(differently(person.getLastName(), DESC),
+                        differently(person.getAge(), ASC, NULL_FIRST),
                         person.getFirstName()));
         assertEquals(expected, sorted);
     }

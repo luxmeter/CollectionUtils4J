@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>luxmeter</groupId>
     <version>0.1.0</version>
-    <artifactId>collectionutils</artifactId>
+    <artifactId>luxmeter.collectionutils</artifactId>
     <name>CollectionUtils</name>
     <dependencies>
         <dependency>

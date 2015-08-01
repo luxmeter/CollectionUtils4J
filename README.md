@@ -13,6 +13,7 @@ you can feel free to add functions you were missing.
 In addition, my API doesn't force you to think about null values, e.g.:
 
 **Sorting of nullable keys with the Comparator API**
+
 ```java
 persons.sort(comparing(Person::getFirstName)
         .thenComparing(comparing(Person::getMiddleName, nullLast(naturalOrder()))));
@@ -22,6 +23,7 @@ If you forget to define the nullFirst comparator, you will get a NullPointerExce
 My API considers null values always as possible values for each part of the key:
 
 **Sorting of nullable keys with the CollectionUtils API**
+
 ```java
 sorted = sortedByKeys(persons, 
             person -> tuple(person.getFirstName(), person.getMiddleName()));
@@ -30,9 +32,10 @@ sorted = sortedByKeys(persons,
 You can also define individual sorting orders:
 
 **Individually sorting with the CollectionUtils API**
+
 ```java
 sorted = sortedByKeys(persons, person ->
-            tuple(differently(person.getLastName(), DESC),
+            tuple(differently(person.getLastName(), DESC, NULL_LAST),
                     differently(person.getAge(), ASC, NULL_FIRST)));
 ```
 

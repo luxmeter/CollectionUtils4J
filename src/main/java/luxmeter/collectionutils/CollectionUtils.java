@@ -198,7 +198,7 @@ public final class CollectionUtils {
     }
     
     /**
-     * Convenient method to make the use differently
+     * Convenient method to make the use of
      * {@link #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)} more readable.
      * @param elements keys the collection in sorted is sorted by
      * @return array differently Comparables

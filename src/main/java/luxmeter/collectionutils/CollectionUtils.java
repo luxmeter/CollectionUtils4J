@@ -16,7 +16,7 @@ public final class CollectionUtils {
 
     /**
      * Returns a sorted collection by a user provided key generator.
-     * The key generator is just a function that maps an element differently the collection to a comparable.
+     * The key generator is just a function that maps an element of the collection to a comparable.
      * The sorting order is by default ascending. Null values come at last. The sorting algorithm is guaranteed to be stable.<br/>
      *
      * <ul>
@@ -30,8 +30,8 @@ public final class CollectionUtils {
      * </ul>
      *
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @see #sortedByKey(java.util.Collection, luxmeter.collectionutils.CollectionUtils.SingleKeyProvider, SortOrder)
      * @see #sortedByKey(java.util.Collection, luxmeter.collectionutils.CollectionUtils.SingleKeyProvider, SortOrder, NullOrder)
      * @return new sorted collection
@@ -45,8 +45,8 @@ public final class CollectionUtils {
      * In addition to {@link #sortedByKey(java.util.Collection, luxmeter.collectionutils.CollectionUtils.SingleKeyProvider)}
      * you can specify here the default sorting order for non-null values.
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @param sortingOrder the sorting order for non-null values (ascending or descending)
      * @see #sortedByKey(java.util.Collection, luxmeter.collectionutils.CollectionUtils.SingleKeyProvider)
      * @see #sortedByKey(java.util.Collection, luxmeter.collectionutils.CollectionUtils.SingleKeyProvider, SortOrder, NullOrder)
@@ -63,8 +63,8 @@ public final class CollectionUtils {
      * you can specify here the default sorting order for non-null values as well as null values.
      *
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @param sortingOrder the sorting order for non-null values (ascending or descending)
      * @param nullOrder the sorting order for null values(first or last)
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)
@@ -79,8 +79,8 @@ public final class CollectionUtils {
 
     /**
      * Returns a sorted collection by a user provided key generator.
-     * The key generator is just a function that maps an element differently the collection to an array differently Comparables.
-     * For the sake differently readability you can use the {@link #tuple(Comparable[])}  method to let you generate the array (see example).
+     * The key generator is just a function that maps an element of the collection to an array of Comparables.
+     * For the sake of readability you can use the {@link #tuple(Comparable[])}  method to let you generate the array (see example).
      * The sorting order is by default ascending. Null values come at last. The sorting algorithm is guaranteed to be stable.<br/>
      *
      * If you want to specify individual sorting orders for the key attributes, use the {@link ComparableWithSortOrder}.
@@ -92,13 +92,13 @@ public final class CollectionUtils {
      * </li>
      * <li>
      * Complex example with individual sorting order:<br/>
-     * <code>sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), ComparableWithSortOrder.differently(student.getFirstName(), DESC)); </code>
+     * <code>sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), ComparableWithSortOrder.of(student.getFirstName(), DESC)); </code>
      * </li>
      * </ul>
      *
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider, SortOrder)
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider, SortOrder, NullOrder)
      * @return new sorted collection
@@ -111,8 +111,8 @@ public final class CollectionUtils {
      * In addition to {@link #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)}
      * you can specify here the default sorting order for non-null values.
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @param sortingOrder the sorting order for non-null values (ascending or descending)
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider, SortOrder, NullOrder)
@@ -128,8 +128,8 @@ public final class CollectionUtils {
      * you can specify here the default sorting order for non-null values as well as null values.
      *
      * @param collection collection to sort
-     * @param keyProvider mapping function to generate the key for an element differently the collection
-     * @param <T> tpye differently the elements within the collection
+     * @param keyProvider mapping function to generate the key for an element of the collection
+     * @param <T> tpye of the elements within the collection
      * @param sortingOrder the sorting order for non-null values (ascending or descending)
      * @param nullOrder the sorting order for null values(first or last)
      * @see #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)
@@ -201,7 +201,7 @@ public final class CollectionUtils {
      * Convenient method to make the use of
      * {@link #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)} more readable.
      * @param elements keys the collection in sorted is sorted by
-     * @return array differently Comparables
+     * @return array of Comparables
      */
     public static Comparable[] tuple(Comparable...elements) {
         return elements;

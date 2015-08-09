@@ -20,12 +20,12 @@ public final class CollectionUtils {
      * The sorting order is by default ascending. Null values come at last. The sorting algorithm is guaranteed to be stable.<br/>
      *
      * <ul>
-     * <li>Simple example:<br/>
-     * <code>sortedByName = sortedByKey(students, student -> student.getLastName()); </code><br/><br/>
+     * <li>Simple example:
+     * <pre>{@code sortedByName = sortedByKey(students, student -> student.getLastName()); }</pre>
      * </li>
      * <li>
-     * Simple example with user defined sorting order:<br/>
-     * <code>sortedByName = sortedByKey(students, student -> student.getLastName(), DESC, NULL_FIRST); </code>
+     * Simple example with user defined sorting order:
+     * <pre>{@code sortedByName = sortedByKey(students, student -> student.getLastName(), DESC, NULL_FIRST); }</pre>
      * </li>
      * </ul>
      *
@@ -87,12 +87,12 @@ public final class CollectionUtils {
      * Notice that you don't need to use ComparableWithSortOrder for  all attributes if you just want to sort an attribute individually (see example).
      * If no ComparableWithSortOrder is given, the default sorting order for non-null and null values is used.<br/><br/>
      * <ul>
-     * <li>Simple example:<br/>
-     * <code>sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), student.getFirstName()); </code><br/><br/>
+     * <li>Simple example:
+     * <pre>{@code sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), student.getFirstName()); }</pre>
      * </li>
      * <li>
-     * Complex example with individual sorting order:<br/>
-     * <code>sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), ComparableWithSortOrder.of(student.getFirstName(), DESC)); </code>
+     * Complex example with individual sorting order:
+     * <pre>{@code sortedByName = sortedByKeys(students, student -> tuple(student.getLastName(), differently(student.getFirstName(), DESC)); }</pre>
      * </li>
      * </ul>
      *
@@ -146,7 +146,13 @@ public final class CollectionUtils {
         List<T> copy = new ArrayList<>(collection);
 
         // is guaranteed to be stable
-        Collections.sort(copy, (e1, e2) -> {
+        Collections.sort(copy, byKey(keyProvider, sortingOrder, nullOrder));
+
+        return copy;
+    }
+
+    public static <T> Comparator<T> byKey(ComposedKeyProvider<T> keyProvider, SortOrder sortingOrder, NullOrder nullOrder) {
+        return (e1, e2) -> {
             Comparable[] keyA = keyProvider.apply(e1);
             Comparable[] keyB = keyProvider.apply(e2);
             for (int i = 0; i < keyA.length; i++) {
@@ -173,9 +179,7 @@ public final class CollectionUtils {
                 }
             }
             return 0;
-        });
-
-        return copy;
+        };
     }
 
     private static int compareNonNullables(Comparable a, Comparable b,
@@ -205,5 +209,52 @@ public final class CollectionUtils {
      */
     public static Comparable[] tuple(Comparable...elements) {
         return elements;
+    }
+
+    /**
+     * Convenient method to sequence the elements of a collection in encountered order.
+     * Handy in use with the for each loop or the Stream API, e.g.:
+     * <pre>{@code
+     * for(ElementWithSequence es: enumerate(persons)) {
+     *     int sequence = es.getSequence();
+     *     Person p = es.getEelement();
+     *     ...
+     * }
+     * }
+     * </pre>
+     *
+     * @param collection collection to sequence
+     * @param offset starting number
+     * @param <T> type of the elements within the collection
+     * @return Iterable of {@link ElementWithSequence}
+     */
+	public static <T> Iterable<ElementWithSequence<T>> enumerate(Collection<T> collection, int offset) {
+		return () -> {
+            Iterator<T> iterator = collection.iterator();
+            return new Iterator<ElementWithSequence<T>>() {
+                int sequence = offset;
+
+                    @Override
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    @Override
+                    public ElementWithSequence<T> next() {
+                        return new ElementWithSequence<>(sequence++, iterator.next());
+                    }
+            };
+        };
+    }
+
+    /**
+     * As {@link CollectionUtils#enumerate(Collection, int)} but with a default offset of 0.
+     * @see CollectionUtils#enumerate(Collection, int)
+     * @param collection collection to sequence
+     * @param <T> type of the elements within the collection
+     * @return Iterable of {@link ElementWithSequence}
+     */
+	public static <T> Iterable<ElementWithSequence<T>> enumerate(Collection<T> collection) {
+        return enumerate(collection, 0);
     }
 }

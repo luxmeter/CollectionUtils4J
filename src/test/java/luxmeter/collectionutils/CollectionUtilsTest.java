@@ -1,26 +1,19 @@
 package luxmeter.collectionutils;
 
-import static java.util.Comparator.*;
-import static java.util.Comparator.comparing;
-import static luxmeter.collectionutils.ComparableWithSortOrder.*;
-import static luxmeter.collectionutils.NullOrder.NULL_FIRST;
-import static luxmeter.collectionutils.SortOrder.ASC;
-import static luxmeter.collectionutils.SortOrder.DESC;
-import static luxmeter.collectionutils.CollectionUtils.sortedByKey;
-import static luxmeter.collectionutils.CollectionUtils.sortedByKeys;
-import static luxmeter.collectionutils.CollectionUtils.tuple;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.Comparator;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import java.util.Iterator;
+import java.util.List;
+
+import static luxmeter.collectionutils.CollectionUtils.*;
+import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
+import static luxmeter.collectionutils.NullOrder.NULL_FIRST;
+import static luxmeter.collectionutils.SortOrder.ASC;
+import static luxmeter.collectionutils.SortOrder.DESC;
+import static org.junit.Assert.*;
 
 public class CollectionUtilsTest {
     @Test
@@ -118,7 +111,7 @@ public class CollectionUtilsTest {
     }
 
     @Test
-    public void shouldSortByFirstNameAndMiddleNameInAscendingOrderAndNullFirst2() {
+    public void shouldSortByKeyUsingTheComparator() {
         List<Person> persons = createPersons();
 
         List<Person> expected = Lists.newArrayList();
@@ -134,9 +127,49 @@ public class CollectionUtilsTest {
 
         assertNotEquals(expected, persons);
 
-        persons.sort(comparing(Person::getFirstName)
-                .thenComparing(comparing(Person::getMiddleName, nullsFirst(naturalOrder()))));
+        persons.sort(byKey(person ->
+                tuple(person.getFirstName(), person.getMiddleName()),
+                ASC, NULL_FIRST));
+
         assertEquals(expected, persons);
+    }
+
+    @Test
+    public void shouldEnumerateCollection() {
+        List<Person> persons = createPersons();
+        Iterator<ElementWithSequence<Person>> iterator = enumerate(persons).iterator();
+        ElementWithSequence<Person> first = iterator.next();
+        ElementWithSequence<Person> second = iterator.next();
+        assertNotEquals(first, second);
+        assertEquals(0, first.getSequence());
+        assertEquals(1, second.getSequence());
+        assertEquals(2, iterator.next().getSequence());
+        assertEquals(3, iterator.next().getSequence());
+        assertEquals(4, iterator.next().getSequence());
+        assertEquals(5, iterator.next().getSequence());
+        assertEquals(6, iterator.next().getSequence());
+        assertEquals(7, iterator.next().getSequence());
+        assertEquals(8, iterator.next().getSequence());
+        assertTrue(!iterator.hasNext());
+    }
+
+    @Test
+    public void shouldEnumerateCollectionWithOffset() {
+        List<Person> persons = createPersons();
+        Iterator<ElementWithSequence<Person>> iterator = enumerate(persons, 10).iterator();
+        ElementWithSequence<Person> first = iterator.next();
+        ElementWithSequence<Person> second = iterator.next();
+        assertNotEquals(first, second);
+        assertEquals(10, first.getSequence());
+        assertEquals(11, second.getSequence());
+        assertEquals(12, iterator.next().getSequence());
+        assertEquals(13, iterator.next().getSequence());
+        assertEquals(14, iterator.next().getSequence());
+        assertEquals(15, iterator.next().getSequence());
+        assertEquals(16, iterator.next().getSequence());
+        assertEquals(17, iterator.next().getSequence());
+        assertEquals(18, iterator.next().getSequence());
+        assertTrue(!iterator.hasNext());
     }
 
     @Test

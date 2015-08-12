@@ -38,6 +38,3 @@ sorted = sortedByKeys(persons, person ->
             tuple(differently(person.getLastName(), DESC, NULL_LAST),
                     differently(person.getAge(), ASC, NULL_FIRST)));
 ```
-
-
-It's up to you what you prefer. Happy programming :)

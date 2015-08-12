@@ -8,9 +8,9 @@ convenient methods to sort a collection by a user defined (composed-)key.
 However, I found out that the Comparator class of the Java API was updated in Java8.
 Semantically there is no difference in the API calls and I bet that you can do more with the Comparator class. 
 Theoretically, this project could be removed but I decided against it.
-Aside from the fact that I found my API more intuitive and less verbose,
-you can feel free to add functions you were missing.
-In addition, my API doesn't force you to think about null values, e.g.:
+I use it as my personal playground. Feel free to join.
+
+## Some usage examples
 
 **Sorting of nullable keys with the Comparator API**
 

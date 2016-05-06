@@ -54,7 +54,7 @@ public class CollectionUtilsTest {
 
         assertNotEquals(expected, persons);
 
-        List<Person> sorted = sortedByKey(persons, person -> person.getLastName());
+        List<Person> sorted = sortedByKey(persons, Person::getLastName);
         assertEquals(expected, sorted);
     }
 
@@ -273,6 +273,16 @@ public class CollectionUtilsTest {
                     .append(lastName)
                     .append(age)
                     .toHashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "Person{" +
+                    "firstName='" + firstName + '\'' +
+                    ", middleName='" + middleName + '\'' +
+                    ", lastName='" + lastName + '\'' +
+                    ", age=" + age +
+                    '}';
         }
     }
 }

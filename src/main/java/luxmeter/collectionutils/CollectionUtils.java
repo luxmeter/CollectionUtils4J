@@ -3,6 +3,8 @@ package luxmeter.collectionutils;
 import java.util.*;
 import java.util.function.Function;
 
+import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
+
 /**
  * Util class defining convenient methods to operate on collections.
  */
@@ -156,24 +158,9 @@ public final class CollectionUtils {
             Comparable[] keyA = keyProvider.apply(e1);
             Comparable[] keyB = keyProvider.apply(e2);
             for (int i = 0; i < keyA.length; i++) {
-                Comparable a = keyA[i];
-                Comparable b = keyB[i];
-
-                SortOrder overriddenSortOrder = sortingOrder;
-                NullOrder overriddenNullOrder = nullOrder;
-
-                if(a instanceof ComparableWithSortOrder) {
-                    overriddenSortOrder = ((ComparableWithSortOrder) a).getSortOrder();
-                    overriddenNullOrder = ((ComparableWithSortOrder) a).getNullOrder();
-
-                    a = ((ComparableWithSortOrder) a).getComparable();
-                    b = ((ComparableWithSortOrder) b).getComparable();
-                }
-
-                int res = (a != null && b != null)
-                        ? compareNonNullables(a, b, overriddenSortOrder)
-                        : compareNullables(a, b, overriddenNullOrder);
-
+                ComparableWithSortOrder a = differently(keyA[i], sortingOrder, nullOrder);
+                ComparableWithSortOrder b = differently(keyB[i], sortingOrder, nullOrder);
+                int res = a.compareTo(b);
                 if (res != 0) {
                     return res;
                 }
@@ -182,25 +169,6 @@ public final class CollectionUtils {
         };
     }
 
-    private static int compareNonNullables(Comparable a, Comparable b,
-                                           SortOrder overriddenSortOrder) {
-        int res = a.compareTo(b);
-        return (overriddenSortOrder == SortOrder.ASC) ? res : (-1 * res);
-    }
-
-    private static int compareNullables(Comparable a, Comparable b, NullOrder overriddenNullOrder) {
-        // 10
-        if (a != null && b == null) {
-            // null last by default
-            return (overriddenNullOrder == NullOrder.NULL_LAST) ? -1 : 1;
-        }
-        // 01
-        else if (a == null && b != null) {
-            return (overriddenNullOrder == NullOrder.NULL_LAST) ? 1 : -1;
-        }
-        return 0;
-    }
-    
     /**
      * Convenient method to make the use of
      * {@link #sortedByKeys(java.util.Collection, luxmeter.collectionutils.CollectionUtils.ComposedKeyProvider)} more readable.

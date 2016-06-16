@@ -43,7 +43,7 @@ sorted = sortedByKeys(persons, person ->
 **Creating Partial Applicaple Functions**
 ```java
 private int sub(int a, int b) {
-return a - b;
+    return a - b;
 }
 
 PartialFunction<Integer> partial = partial(this::sub, bind(10), free()); // type safe

@@ -9,7 +9,7 @@ However, I found out that the Comparator class of the Java API was updated in Ja
 Theoretically, this project could be removed but I decided against it.
 I use it now as my personal playground. Feel free to join.
 
-## Usage
+## Collection Utils
 
 **Sorting of nullable keys with the Comparator API**
 
@@ -37,6 +37,8 @@ sorted = sortedByKeys(persons, person ->
             tuple(differently(person.getLastName(), DESC, NULL_LAST),
                     differently(person.getAge(), ASC, NULL_FIRST)));
 ```
+
+## „Lamda“ Utils
 
 **Creating Partial Applicaple Functions**
 ```java

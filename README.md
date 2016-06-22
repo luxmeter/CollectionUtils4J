@@ -40,7 +40,7 @@ sorted = sortedByKeys(persons, person ->
 
 ## „Lamda“ Utils
 
-**Creating Partial Applicaple Functions**
+**Creating Partial Applicable Functions**
 ```java
 private int sub(int a, int b) {
     return a - b;

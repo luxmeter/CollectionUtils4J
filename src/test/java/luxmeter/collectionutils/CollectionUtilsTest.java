@@ -1,288 +1,66 @@
 package luxmeter.collectionutils;
 
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
-import java.util.Iterator;
+import java.util.Arrays;
 import java.util.List;
 
 import static luxmeter.collectionutils.CollectionUtils.*;
-import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
-import static luxmeter.collectionutils.NullOrder.NULL_FIRST;
-import static luxmeter.collectionutils.SortOrder.ASC;
-import static luxmeter.collectionutils.SortOrder.DESC;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 public class CollectionUtilsTest {
     @Test
-    public void shouldSortByLastNameAsComposedKeyInAscendingOrder() {
-        List<Person> persons = createPersons();
-        
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Peter", null, "Dieter", 50));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Jason", null, "Vettel", 28));
-
-        assertNotEquals(expected, persons);
-
-        List<Person> sorted = sortedByKeys(persons, person -> tuple(person.getLastName()));
-        assertEquals(expected, sorted);
+    public void shouldZipIterablesWithSameSize() {
+        Iterable<Pair<String, Integer>> zipped = zip(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2, 3));
+        assertThat(zipped, contains(Pair.of("a", 1), Pair.of("b", 2), Pair.of("c", 3)));
     }
 
     @Test
-    public void shouldSortByLastNameAsSingleKeyInAscendingOrder() {
-        List<Person> persons = createPersons();
-
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Peter", null, "Dieter", 50));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Jason", null, "Vettel", 28));
-
-        assertNotEquals(expected, persons);
-
-        List<Person> sorted = sortedByKey(persons, Person::getLastName);
-        assertEquals(expected, sorted);
+    public void shouldZipIterablesWithDifferentSize() {
+        Iterable<Pair<String, Integer>> zipped = zip(Arrays.asList("a", "b"), Arrays.asList(1, 2, 3, 4));
+        assertThat(zipped, contains(Pair.of("a", 1), Pair.of("b", 2), Pair.of(null, 3), Pair.of(null, 4)));
     }
 
     @Test
-    public void shouldDoNothingOnNullValueAsSingleKey() {
-        List<Person> persons = createPersons();
-        List<Person> sorted = sortedByKey(persons, person -> null);
-        assertEquals(persons, sorted);
+    public void shouldZipIterablesWithDifferentSizeAndDefaultValues() {
+        String defaultValue = "_";
+        Iterable<Pair<String, Integer>> zipped = zip( Arrays.asList("a", "b"), Arrays.asList(1, 2, 3, 4),
+                defaultValue, null);
+        assertThat(zipped, contains(Pair.of("a", 1), Pair.of("b", 2), Pair.of(defaultValue, 3), Pair.of(defaultValue, 4)));
     }
 
     @Test
-    public void shouldSortByFirstNameAndLastNameInAscendingOrder() {
-        List<Person> persons = createPersons();
-
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Jason", null, "Vettel", 28));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Peter", null, "Dieter", 50));
-
-        assertNotEquals(expected, persons);
-
-        List<Person> sorted = sortedByKeys(persons,
-                person -> tuple(person.getFirstName(), person.getLastName()));
-        assertEquals(expected, sorted);
-    }
-
-
-    @Test
-    public void shouldSortByFirstNameAndMiddleNameInAscendingOrderAndNullFirst() {
-        List<Person> persons = createPersons();
-
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Jason", null, "Vettel", 28));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Peter", null, "Dieter", 50));
-
-        assertNotEquals(expected, persons);
-
-        List<Person> sorted = sortedByKeys(persons,
-                person -> tuple(person.getFirstName(), person.getMiddleName()), ASC, NULL_FIRST);
-        assertEquals(expected, sorted);
+    public void shouldAppendIterables() {
+        Iterable<String> append = append(Arrays.asList("a", "b", "c"),  Arrays.asList("d", "e"));
+        assertThat(append, contains("a", "b", "c", "d", "e"));
     }
 
     @Test
-    public void shouldSortByKeyUsingTheComparator() {
-        List<Person> persons = createPersons();
-
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Jason", null, "Vettel", 28));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Peter", null, "Dieter", 50));
-
-        assertNotEquals(expected, persons);
-
-        persons.sort(byKey(person ->
-                tuple(person.getFirstName(), person.getMiddleName()),
-                ASC, NULL_FIRST));
-
-        assertEquals(expected, persons);
+    public void shouldRepeat3Times() {
+        assertThat(repeat("a", 3), contains("a", "a", "a"));
     }
 
     @Test
-    public void shouldEnumerateCollection() {
-        List<Person> persons = createPersons();
-        Iterator<ElementWithSequence<Person>> iterator = enumerate(persons).iterator();
-        ElementWithSequence<Person> first = iterator.next();
-        ElementWithSequence<Person> second = iterator.next();
-        assertNotEquals(first, second);
-        assertEquals(0, first.getSequence());
-        assertEquals(1, second.getSequence());
-        assertEquals(2, iterator.next().getSequence());
-        assertEquals(3, iterator.next().getSequence());
-        assertEquals(4, iterator.next().getSequence());
-        assertEquals(5, iterator.next().getSequence());
-        assertEquals(6, iterator.next().getSequence());
-        assertEquals(7, iterator.next().getSequence());
-        assertEquals(8, iterator.next().getSequence());
-        assertTrue(!iterator.hasNext());
+    public void shouldCycle3Times() {
+        assertThat(cycle(Arrays.asList("a", "b"), 3), contains("a", "b", "a", "b", "a", "b"));
     }
 
     @Test
-    public void shouldEnumerateCollectionWithOffset() {
-        List<Person> persons = createPersons();
-        Iterator<ElementWithSequence<Person>> iterator = enumerate(persons, 10).iterator();
-        ElementWithSequence<Person> first = iterator.next();
-        ElementWithSequence<Person> second = iterator.next();
-        assertNotEquals(first, second);
-        assertEquals(10, first.getSequence());
-        assertEquals(11, second.getSequence());
-        assertEquals(12, iterator.next().getSequence());
-        assertEquals(13, iterator.next().getSequence());
-        assertEquals(14, iterator.next().getSequence());
-        assertEquals(15, iterator.next().getSequence());
-        assertEquals(16, iterator.next().getSequence());
-        assertEquals(17, iterator.next().getSequence());
-        assertEquals(18, iterator.next().getSequence());
-        assertTrue(!iterator.hasNext());
+    public void shouldBuildCombination() {
+        List<Pair<String, Integer>> combi = combinations(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2, 3));
+        assertThat(combi, containsInAnyOrder(Pair.of("a", 1), Pair.of("b", 1), Pair.of("c", 1),
+                Pair.of("a", 2), Pair.of("b", 2), Pair.of("c", 2),
+                Pair.of("a", 3), Pair.of("b", 3), Pair.of("c", 3)));
     }
 
     @Test
-    public void shouldSortByIndividualSortingOrder() {
-        List<Person> persons = createPersons();
-
-        List<Person> expected = Lists.newArrayList();
-        expected.add(new Person("Jason", null, "Vettel", 28));
-        expected.add(new Person("Florian", null, "Uhrmacher", 30));
-        expected.add(new Person("Andreas", null, "Pfingsten", 27));
-        expected.add(new Person("Lena", null, "Oelson", 28));
-        expected.add(new Person("Andreas", null, "Guardian", 35));
-        expected.add(new Person("Lena", "Mira", "Eisen", 26));
-        expected.add(new Person("Hans", "Christoph", "Dieter", null));
-        expected.add(new Person("Hans", null, "Dieter", 35));
-        expected.add(new Person("Peter", null, "Dieter", 50));
-
-        assertNotEquals(expected, persons);
-
-        List<Person> sorted = sortedByKeys(persons, person ->
-                tuple(differently(person.getLastName(), DESC),
-                        differently(person.getAge(), ASC, NULL_FIRST),
-                        person.getFirstName()));
-        assertEquals(expected, sorted);
-    }
-
-    @Test
-    public void shouldReturnEmptyListOnNull() {
-        List<Person> persons = null;
-        assertNotNull(sortedByKeys(persons, p -> tuple(p.getAge())));
-    }
-
-    private List<Person> createPersons() {
-        List<Person> persons = Lists.newArrayList();
-        persons.add(new Person("Lena", "Mira", "Eisen", 26));
-        persons.add(new Person("Peter", null, "Dieter", 50));
-        persons.add(new Person("Andreas", null, "Pfingsten", 27));
-        persons.add(new Person("Lena", null, "Oelson", 28));
-        persons.add(new Person("Hans", null, "Dieter", 35));
-        persons.add(new Person("Jason", null, "Vettel", 28));
-        persons.add(new Person("Florian", null, "Uhrmacher", 30));
-        persons.add(new Person("Andreas", null, "Guardian", 35));
-        persons.add(new Person("Hans", "Christoph", "Dieter", null));
-        return persons;
-    }
-
-    public static class Person {
-        private final String firstName;
-        private final String middleName;
-        private final String lastName;
-        private final Integer age;
-
-        public Person(String firstName, String middleName, String lastName, Integer age) {
-            this.firstName = firstName;
-            this.middleName = middleName;
-            this.lastName = lastName;
-            this.age = age;
-        }
-
-        public String getFirstName() {
-            return firstName;
-        }
-
-        public String getMiddleName() {
-            return middleName;
-        }
-
-        public String getLastName() {
-            return lastName;
-        }
-
-        public Integer getAge() {
-            return age;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (obj == this) {
-                return true;
-            }
-            if (obj.getClass() != getClass()) {
-                return false;
-            }
-            Person rhs = (Person) obj;
-            return new EqualsBuilder()
-                    .append(this.firstName, rhs.firstName)
-                    .append(this.middleName, rhs.middleName)
-                    .append(this.lastName, rhs.lastName)
-                    .append(this.age, rhs.age)
-                    .isEquals();
-        }
-
-        @Override
-        public int hashCode() {
-            return new HashCodeBuilder()
-                    .append(firstName)
-                    .append(middleName)
-                    .append(lastName)
-                    .append(age)
-                    .toHashCode();
-        }
-
-        @Override
-        public String toString() {
-            return "Person{" +
-                    "firstName='" + firstName + '\'' +
-                    ", middleName='" + middleName + '\'' +
-                    ", lastName='" + lastName + '\'' +
-                    ", age=" + age +
-                    '}';
-        }
+    public void shouldBuildCombination2() {
+        List<Pair<String, Integer>> combi = combinations(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2));
+        assertThat(combi, containsInAnyOrder(Pair.of("a", 1), Pair.of("b", 1), Pair.of("c", 1),
+                Pair.of("a", 2), Pair.of("b", 2), Pair.of("c", 2)));
     }
 }

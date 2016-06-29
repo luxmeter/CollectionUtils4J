@@ -1,7 +1,10 @@
 package luxmeter.collectionutils;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
 
@@ -9,6 +12,18 @@ import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
  * Util class defining convenient methods to operate on collections.
  */
 public final class CollectionUtils {
+    private static final Iterable NULL_REPEATABLE = () -> new Iterator() {
+        @Override
+        public boolean hasNext() {
+            return true;
+        }
+
+        @Override
+        public Object next() {
+            return null;
+        }
+    };
+
     @FunctionalInterface
     public interface ComposedKeyProvider<T> extends Function<T, Comparable[]> {
     }
@@ -224,5 +239,123 @@ public final class CollectionUtils {
      */
 	public static <T> Iterable<ElementWithSequence<T>> enumerate(Collection<T> collection) {
         return enumerate(collection, 0);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <K,V> Iterable<Pair<K, V>> zip(Iterable<K> firstIterable, Iterable<V> secondIterable) {
+        return zip(firstIterable, secondIterable, null, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <K,V> Iterable<Pair<K, V>> zip(Iterable<K> firstIterable, Iterable<V> secondIterable, K firstDefaultValue, V secondDefaultValue) {
+        Iterable firstRepeatable = repeat(firstDefaultValue);
+        Iterable secondRepeatable = repeat(secondDefaultValue);
+        List<Iterator<?>> iterators = Arrays.asList(firstIterable.iterator(), secondIterable.iterator());
+        Iterator<K> endlessFirstIterator = append(iterators.get(0), firstRepeatable.iterator());
+        Iterator<V> endlessSecondIterator = append(iterators.get(1), secondRepeatable.iterator());
+
+        return () -> new Iterator<Pair<K, V>>() {
+            @Override
+            public boolean hasNext() {
+                return iterators.stream().anyMatch(Iterator::hasNext);
+            }
+
+            @Override
+            public Pair<K, V> next() {
+                return Pair.of(endlessFirstIterator.next(), endlessSecondIterator.next());
+            }
+        };
+    }
+
+    public static <T> Iterable<T> repeat(T value) {
+        return repeat(value, -1);
+    }
+
+    public static <T> Iterable<T> repeat(T value, int times) {
+        if (value == null) {
+            return NULL_REPEATABLE;
+        }
+
+        return  () -> new Iterator() {
+            private int count = 0;
+            @Override
+            public boolean hasNext() {
+                return times < 0 || count < times;
+            }
+
+            @Override
+            public Object next() {
+                count ++;
+                return value;
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    @SafeVarargs
+    public static <T> Iterable<T> append(Iterable<T>... iterables) {
+        return () -> {
+            Iterator[] iterators = Arrays.asList(iterables).stream().map(Iterable::iterator).toArray(Iterator[]::new);
+            return append(iterators);
+        };
+    }
+
+    public static <T> Iterator append(Iterator<T>... iterables) {
+        List<Iterator<T>>  iterableList = Arrays.asList(iterables);
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return iterableList.stream().anyMatch(Iterator::hasNext);
+            }
+
+            @Override
+            public T next() {
+                return iterableList.stream()
+                        .filter(Iterator::hasNext)
+                        .findFirst()
+                        .map(Iterator::next)
+                        .orElse(null);
+            }
+        };
+    }
+
+    public static <T> Iterable<T> cycle(Iterable<T> iterable, int times) {
+        return () -> new Iterator<T>() {
+            private Iterator<T> iterator = iterable.iterator();
+            private int count = 0;
+
+            @Override
+            public boolean hasNext() {
+                if (!iterator.hasNext()) {
+                    iterator = iterable.iterator();
+                    count++;
+                }
+                return times < 0 || count < times;
+            }
+
+            @Override
+            public T next() {
+                return iterator.next();
+            }
+        };
+    }
+
+    public static <T> List<T> toList(Iterable<T> iterable) {
+        ArrayList<T> result = new ArrayList<>();
+        for (T t : iterable) {
+            result.add(t);
+        }
+        return result;
+    }
+
+    public static <K,V> List<Pair<K, V>> combinations(Iterable<K> firstIterable, Iterable<V> secondIterable) {
+        List<K> firstCollection = toList(firstIterable);
+        List<V> secondCollection = toList(secondIterable);
+        Iterable<K> repeatedFirstCollection = cycle(firstIterable, secondCollection.size());
+        List<V> repeatedSecondCollection = secondCollection.stream()
+                .flatMap(e -> toList(repeat(e, firstCollection.size())).stream())
+                .collect(Collectors.toList());
+        List<Pair<K, V>> zipped = toList(zip(repeatedFirstCollection, repeatedSecondCollection));
+        return zipped;
     }
 }

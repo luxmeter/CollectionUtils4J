@@ -50,16 +50,16 @@ public class CollectionUtilsTest {
     }
 
     @Test
-    public void shouldBuildCombination() {
-        List<Pair<String, Integer>> combi = combinations(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2, 3));
+    public void shouldBuildProduct() {
+        List<Pair<String, Integer>> combi = product(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2, 3));
         assertThat(combi, containsInAnyOrder(Pair.of("a", 1), Pair.of("b", 1), Pair.of("c", 1),
                 Pair.of("a", 2), Pair.of("b", 2), Pair.of("c", 2),
                 Pair.of("a", 3), Pair.of("b", 3), Pair.of("c", 3)));
     }
 
     @Test
-    public void shouldBuildCombination2() {
-        List<Pair<String, Integer>> combi = combinations(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2));
+    public void shouldBuildProduct2() {
+        List<Pair<String, Integer>> combi = product(Arrays.asList("a", "b", "c"), Arrays.asList(1, 2));
         assertThat(combi, containsInAnyOrder(Pair.of("a", 1), Pair.of("b", 1), Pair.of("c", 1),
                 Pair.of("a", 2), Pair.of("b", 2), Pair.of("c", 2)));
     }

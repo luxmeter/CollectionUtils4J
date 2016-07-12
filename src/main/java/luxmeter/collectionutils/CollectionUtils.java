@@ -168,6 +168,7 @@ public final class CollectionUtils {
         return copy;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Comparator<T> byKey(ComposedKeyProvider<T> keyProvider, SortOrder sortingOrder, NullOrder nullOrder) {
         return (e1, e2) -> {
             Comparable[] keyA = keyProvider.apply(e1);
@@ -271,6 +272,7 @@ public final class CollectionUtils {
         return repeat(value, -1);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Iterable<T> repeat(T value, int times) {
         if (value == null) {
             return NULL_REPEATABLE;
@@ -348,14 +350,11 @@ public final class CollectionUtils {
         return result;
     }
 
-    public static <K,V> List<Pair<K, V>> combinations(Iterable<K> firstIterable, Iterable<V> secondIterable) {
-        List<K> firstCollection = toList(firstIterable);
-        List<V> secondCollection = toList(secondIterable);
-        Iterable<K> repeatedFirstCollection = cycle(firstIterable, secondCollection.size());
+    public static <K,V> List<Pair<K, V>> product(Collection<K> firstCollection, Collection<V> secondCollection) {
+        Iterable<K> repeatedFirstCollection = cycle(firstCollection, secondCollection.size());
         List<V> repeatedSecondCollection = secondCollection.stream()
                 .flatMap(e -> toList(repeat(e, firstCollection.size())).stream())
                 .collect(Collectors.toList());
-        List<Pair<K, V>> zipped = toList(zip(repeatedFirstCollection, repeatedSecondCollection));
-        return zipped;
+        return toList(zip(repeatedFirstCollection, repeatedSecondCollection));
     }
 }

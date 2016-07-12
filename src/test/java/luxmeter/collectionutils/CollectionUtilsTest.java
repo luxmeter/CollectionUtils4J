@@ -35,7 +35,7 @@ public class CollectionUtilsTest {
 
     @Test
     public void shouldAppendIterables() {
-        Iterable<String> append = append(Arrays.asList("a", "b", "c"),  Arrays.asList("d", "e"));
+        Iterable<String> append = chain(Arrays.asList("a", "b", "c"),  Arrays.asList("d", "e"));
         assertThat(append, contains("a", "b", "c", "d", "e"));
     }
 

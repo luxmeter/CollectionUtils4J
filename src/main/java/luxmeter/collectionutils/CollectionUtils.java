@@ -296,15 +296,6 @@ public final class CollectionUtils {
 
     @SuppressWarnings("unchecked")
     @SafeVarargs
-    public static <T> Iterable<T> append(Iterable<T>... iterables) {
-        return () -> {
-            Iterator[] iterators = Arrays.asList(iterables).stream().map(Iterable::iterator).toArray(Iterator[]::new);
-            return append(iterators);
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    @SafeVarargs
     public static <T> List<T> chain(List<T> first, List<T>... others) {
         int size = first.size();
         for (List<T> other : others) {

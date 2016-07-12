@@ -2,6 +2,7 @@ package luxmeter.collectionutils;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.PrintStream;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -302,6 +303,31 @@ public final class CollectionUtils {
         };
     }
 
+    @SuppressWarnings("unchecked")
+    @SafeVarargs
+    public static <T> List<T> chain(List<T> first, List<T>... others) {
+        int size = first.size();
+        for (List<T> other : others) {
+            size += other.size();
+        }
+        ArrayList<T> result = new ArrayList<>(size);
+        result.addAll(first);
+        for (List<T> other : others) {
+            result.addAll(other);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    @SafeVarargs
+    public static <T> Set<T> chain(Set<T> first, Set<T>... others) {
+        HashSet<T> result = new HashSet<>(first);
+        for (Set<T> other : others) {
+            result.addAll(other);
+        }
+        return result;
+    }
+
     public static <T> Iterator append(Iterator<T>... iterables) {
         List<Iterator<T>>  iterableList = Arrays.asList(iterables);
         return new Iterator<T>() {
@@ -356,5 +382,30 @@ public final class CollectionUtils {
                 .flatMap(e -> toList(repeat(e, firstCollection.size())).stream())
                 .collect(Collectors.toList());
         return toList(zip(repeatedFirstCollection, repeatedSecondCollection));
+    }
+
+    public static <T> List<T> removeAll(List<T> toRemoveFrom, List<T> elementsToRemove) {
+        ArrayList<T> subtract = new ArrayList<>(toRemoveFrom);
+        subtract.removeAll(elementsToRemove);
+        return subtract;
+    }
+
+    public static <T> Set<T> removeAll(Set<T> toRemoveFrom, Set<T> elementsToRemove) {
+        Set<T> subtract = new HashSet<T>(toRemoveFrom);
+        subtract.removeAll(elementsToRemove);
+        return subtract;
+    }
+
+    public static void println(Iterable iterable, PrintStream out) {
+        for (Object o : iterable) {
+            if (o == null) {
+                continue;
+            }
+            out.println(o.toString());
+        }
+    }
+
+    public static void println(Iterable iterable) {
+        println(iterable, System.out);
     }
 }

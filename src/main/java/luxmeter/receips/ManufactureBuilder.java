@@ -8,7 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class ManufactureBuilder<T, A> {
-    private Collection<T> existingElements;
+    protected Collection<T> existingElements;
     private Collection<A> intermediateEndResult; // goal
     private Function<A, T> elementConstructor;
 
@@ -57,10 +57,7 @@ public final class ManufactureBuilder<T, A> {
 
 
     public Manufacture<T, A> build() {
-        return new Manufacture<>(existingElements, intermediateResultMapper,
-                intermediateResultsMapper,
-                intermediateEndResult, elementConstructor,
-                groupingKey, reducer);
+        return new Manufacture<>(this);
     }
 
     public enum MergeType {
@@ -78,36 +75,33 @@ public final class ManufactureBuilder<T, A> {
         private final Function<T, ?> groupingKey;
         private final BinaryOperator<T> reducer;
 
-        public Manufacture(Collection<T> existingConcreteElements, Function<T, A> intermediateResultMapper,
-                           Function<T, Collection<A>> intermediateResultsMapper,
-                           Collection<A> intermediateEndResult, Function<A, T> elementConstructor,
-                           Function<T, ?> groupingKey, BinaryOperator<T> reducer) {
-            Objects.requireNonNull(existingConcreteElements);
-            Objects.requireNonNull(intermediateEndResult);
-            Objects.requireNonNull(elementConstructor);
+        public Manufacture(ManufactureBuilder<T, A> builder) {
+            Objects.requireNonNull(builder.existingElements);
+            Objects.requireNonNull(builder.intermediateEndResult);
+            Objects.requireNonNull(builder.elementConstructor);
 
-            if (!(intermediateResultMapper != null ^ intermediateResultsMapper != null)) {
+            if (!(builder.intermediateResultMapper != null ^ builder.intermediateResultsMapper != null)) {
                 throw new IllegalArgumentException(
                         "Either an intermediateResultMapper or intermediateResult[s]Mapper must be passed in.");
             }
-            if (groupingKey != null || reducer != null) {
-                Objects.requireNonNull(groupingKey);
-                Objects.requireNonNull(reducer);
+            if (builder.groupingKey != null || builder.reducer != null) {
+                Objects.requireNonNull(builder.groupingKey);
+                Objects.requireNonNull(builder.reducer);
             }
 
-            this.intermediateResultMapper = intermediateResultMapper;
+            this.intermediateResultMapper = builder.intermediateResultMapper;
             if (intermediateResultMapper != null) {
                 this.intermediateResultsMapper = e -> Collections.singletonList(intermediateResultMapper.apply(e));
             }
             else {
-                this.intermediateResultsMapper = intermediateResultsMapper;
+                this.intermediateResultsMapper = builder.intermediateResultsMapper;
             }
 
-            this.existingConcreteElements = new HashSet<T>(existingConcreteElements);
-            this.intermediateEndResult = new HashSet<A>(intermediateEndResult);
-            this.elementConstructor = elementConstructor;
-            this.groupingKey = groupingKey;
-            this.reducer = reducer;
+            this.existingConcreteElements = new HashSet<T>(builder.existingElements);
+            this.intermediateEndResult = new HashSet<A>(builder.intermediateEndResult);
+            this.elementConstructor = builder.elementConstructor;
+            this.groupingKey = builder.groupingKey;
+            this.reducer = builder.reducer;
         }
 
         public Set<T> generateMissingElements() {

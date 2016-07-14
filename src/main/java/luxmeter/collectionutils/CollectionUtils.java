@@ -375,6 +375,10 @@ public final class CollectionUtils {
         return toList(zip(repeatedFirstCollection, repeatedSecondCollection));
     }
 
+    public static List<List<Object>> product(List... lists) {
+        return toList(new CartesianProduct(lists));
+    }
+
     public static <T> List<T> removeAll(List<T> toRemoveFrom, List<T> elementsToRemove) {
         ArrayList<T> subtract = new ArrayList<>(toRemoveFrom);
         subtract.removeAll(elementsToRemove);

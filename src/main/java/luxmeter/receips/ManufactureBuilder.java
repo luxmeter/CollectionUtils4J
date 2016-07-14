@@ -1,63 +1,101 @@
 package luxmeter.receips;
 
 import luxmeter.collectionutils.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class ManufactureBuilder<T, A> {
-    protected Collection<T> existingElements;
-    private Collection<A> intermediateEndResult; // goal
-    private Function<A, T> elementConstructor;
+public final class ManufactureBuilder<T> {
+    private List<Pair<Collection<?>, Function<T, ?>>> keyProperties = new ArrayList<>();
 
-    private Function<T, Collection<A>> intermediateResultsMapper;
+    private Collection<T> existingElements;
+    private Collection<Key> intermediateEndResult; // goal
+    private Function<Key, T> elementConstructor;
+
+    private Function<T, Collection<Key>> intermediateResultsMapper;
     private Function<T, ?> groupingKey;
     private BinaryOperator<T> reducer;
-    private Function<T, A> intermediateResultMapper;
+    private Function<T, Key> intermediateResultMapper;
 
     private ManufactureBuilder() {
     }
 
-    public static <T,A > ManufactureBuilder<T, A> create() {
+    public static <T,A > ManufactureBuilder<T> create() {
         return new ManufactureBuilder<>();
     }
 
-    public ManufactureBuilder<T, A> withExistingElements(Collection<T> existingElements) {
+    public ManufactureBuilder<T> withExistingElements(Collection<T> existingElements) {
         this.existingElements = existingElements;
         return this;
     }
 
-    public ManufactureBuilder<T, A> withIntermediateResultsMapper(Function<T, Collection<A>>  intermediateResultsMapper) {
+    public ManufactureBuilder<T> withIntermediateResultsMapper(Function<T, Collection<Key>>  intermediateResultsMapper) {
         this.intermediateResultsMapper = intermediateResultsMapper;
         return this;
     }
 
-    public ManufactureBuilder<T, A> withIntermediateResultMapper(Function<T, A>  intermediateResultMapper) {
-        this.intermediateResultMapper = intermediateResultMapper;
-        return this;
-    }
-
-    public ManufactureBuilder<T, A> withIntermediateEndResult(Collection<A> intermediateEndResult) {
-        this.intermediateEndResult = intermediateEndResult;
-        return this;
-    }
-
-    public ManufactureBuilder<T, A> withElementConstructor(Function<A, T> elementConstructor) {
+    public ManufactureBuilder<T> withElementConstructor(Function<Key, T> elementConstructor) {
         this.elementConstructor = elementConstructor;
         return this;
     }
 
-    public ManufactureBuilder<T, A> withReducer(Function<T, ?> groupingKey, BinaryOperator<T> reducer) {
+    public ManufactureBuilder<T> withReducer(Function<T, ?> groupingKey, BinaryOperator<T> reducer) {
         this.groupingKey = groupingKey;
         this.reducer = reducer;
         return this;
     }
 
+    public ManufactureBuilder<T> withKeyProperty(Collection<?> valuesRange, Function<T, ?> propertyExtractor) {
+        keyProperties.add(Pair.of(valuesRange, propertyExtractor));
+        return this;
+    }
 
-    public Manufacture<T, A> build() {
+
+    @SuppressWarnings("unchecked")
+    public Manufacture<T> build() {
+        List<List<String>> valueRanges = keyProperties.stream().map(pair -> pair.getLeft().stream().map(Object::toString).collect(Collectors.toList())).collect(Collectors.toList());
+        // lists[0] -> chargecodes
+        // lists[1] -> products
+        // lists[2] -> zones
+        List<String>[] lists = (List<String>[]) valueRanges.toArray(new List[0]);
+        List<List<String>> product = (List<List<String>>)(List<?>) CollectionUtils.product(lists);
+        Set<Key> collect = product.stream().map(Key::new).collect(Collectors.toSet());
+        intermediateEndResult = collect;
+        if (this.intermediateResultsMapper == null) {
+            intermediateResultMapper = concreteElement -> {
+                List<String> combination = keyProperties.stream().map(Pair::getRight).map(extractor -> extractor.apply(concreteElement).toString()).collect(Collectors.toList());
+                return new Key(combination);
+            };
+        }
         return new Manufacture<>(this);
+    }
+
+    public static final class Key {
+        private final List<String> keyProperties;
+
+        public Key(Collection<String> keyProperties) {
+            this.keyProperties = new ArrayList<>(keyProperties);
+        }
+
+        public List<String> getKeyProperties() {
+            return keyProperties;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Key key = (Key) o;
+            return keyProperties.size() == key.keyProperties.size() && keyProperties.containsAll(key.keyProperties);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(keyProperties);
+        }
     }
 
     public enum MergeType {
@@ -65,25 +103,26 @@ public final class ManufactureBuilder<T, A> {
         NOT_MERGED
     }
 
-    public static final class Manufacture<T, A> {
+    public static final class Manufacture<T> {
         private final Set<T> existingConcreteElements;
-        private final Set<A> intermediateEndResult; // goal
-        private final Function<A, T> elementConstructor;
+        private final Set<Key> intermediateEndResult; // goal
+        private final Function<Key, T> elementConstructor;
 
-        private final Function<T, Collection<A>> intermediateResultsMapper;
-        private final Function<T, A> intermediateResultMapper;
+        private final Function<T, Collection<Key>> intermediateResultsMapper;
+        private final Function<T, Key> intermediateResultMapper;
         private final Function<T, ?> groupingKey;
         private final BinaryOperator<T> reducer;
 
-        public Manufacture(ManufactureBuilder<T, A> builder) {
+        public Manufacture(ManufactureBuilder<T> builder) {
             Objects.requireNonNull(builder.existingElements);
             Objects.requireNonNull(builder.intermediateEndResult);
             Objects.requireNonNull(builder.elementConstructor);
 
-            if (!(builder.intermediateResultMapper != null ^ builder.intermediateResultsMapper != null)) {
+            if ((builder.intermediateResultMapper != null) == (builder.intermediateResultsMapper != null)) {
                 throw new IllegalArgumentException(
                         "Either an intermediateResultMapper or intermediateResult[s]Mapper must be passed in.");
             }
+
             if (builder.groupingKey != null || builder.reducer != null) {
                 Objects.requireNonNull(builder.groupingKey);
                 Objects.requireNonNull(builder.reducer);
@@ -98,7 +137,7 @@ public final class ManufactureBuilder<T, A> {
             }
 
             this.existingConcreteElements = new HashSet<T>(builder.existingElements);
-            this.intermediateEndResult = new HashSet<A>(builder.intermediateEndResult);
+            this.intermediateEndResult = new HashSet<Key>(builder.intermediateEndResult);
             this.elementConstructor = builder.elementConstructor;
             this.groupingKey = builder.groupingKey;
             this.reducer = builder.reducer;
@@ -109,11 +148,11 @@ public final class ManufactureBuilder<T, A> {
         }
 
         public Set<T> generateMissingElements(MergeType merged) {
-            Set<A> existingAbstractElements = existingConcreteElements.stream()
+            Set<Key> existingAbstractElements = existingConcreteElements.stream()
                     .flatMap(e->intermediateResultsMapper.apply(e).stream())
                     .collect(Collectors.toSet());
 
-            Set<A> missingAbstractElements = CollectionUtils.removeAll(intermediateEndResult, existingAbstractElements);
+            Set<Key> missingAbstractElements = CollectionUtils.removeAll(intermediateEndResult, existingAbstractElements);
 
             Set<T> generatedMissingConcreteElements = missingAbstractElements.stream()
                     .map(elementConstructor)
@@ -124,7 +163,7 @@ public final class ManufactureBuilder<T, A> {
                         generatedMissingConcreteElements.stream().collect(Collectors.groupingBy(groupingKey));
                 groupedGeneratedMissingConcreteElements.entrySet().forEach(this::reduce);
 
-                // finish: flatten the result
+                // finish: flatten the resultl
                 generatedMissingConcreteElements = groupedGeneratedMissingConcreteElements.values().stream()
                         .map(r -> r.get(0))
                         .collect(Collectors.toSet());

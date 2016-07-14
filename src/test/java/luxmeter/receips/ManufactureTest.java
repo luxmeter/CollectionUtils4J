@@ -15,9 +15,9 @@ import static luxmeter.collectionutils.CollectionUtils.println;
 import static luxmeter.receips.ManufactureBuilder.MergeType.MERGED;
 import static luxmeter.receips.ManufactureTest.Product.PX;
 import static luxmeter.receips.ManufactureTest.Product.TX;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
 
 public class ManufactureTest {
     public void shouldGenerateMissingCharges() {
@@ -73,23 +73,23 @@ public class ManufactureTest {
     public void shouldGenerateMissingRates() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
-
-        // what do i expect?
         List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
-        List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(chargeCodes, allProducts);
-        List<RateKey> allRatesKeys = chargeCodePerProduct.stream().map(pair -> new RateKey(pair.getLeft(), pair.getRight())).collect(Collectors.toList());
 
-        ManufactureBuilder<Rate, RateKey> manufactureBuilder = ManufactureBuilder.create();
+        ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
         manufactureBuilder
                 .withExistingElements(rates)
-                .withElementConstructor(rateKey -> new Rate(rateKey.getChargeCode(), EnumSet.of(rateKey.getProduct())))
-                .withIntermediateEndResult(allRatesKeys)
+                .withKeyProperty(chargeCodes, Rate::getChargeCode)
+                .withKeyProperty(allProducts, Rate::getProducts)
+                .withElementConstructor(key -> new Rate(key.getKeyProperties().get(0),
+                        Collections.singleton(Product.valueOf((String)key.getKeyProperties().get(1)))))
                 // can generate more elements like in this case
                 // but the API could provide another mapper in case you want to map each element one to one
                 .withIntermediateResultsMapper(r ->
-                        r.getProducts().stream().map(p -> new RateKey(r.getChargeCode(), p)).collect(Collectors.toList()));
+                        r.getProducts().stream().map(
+                                p -> new ManufactureBuilder.Key(Arrays.asList(r.getChargeCode(), p.toString())))
+                                .collect(Collectors.toList()));
 
-        Manufacture<Rate, RateKey> manufacture = manufactureBuilder.build();
+        Manufacture<Rate> manufacture = manufactureBuilder.build();
         Set<Rate> generatedMissingRates = manufacture.generateMissingElements();
 
         assertThat(generatedMissingRates, hasSize(3));
@@ -106,22 +106,24 @@ public class ManufactureTest {
         // what do i expect?
         List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
         List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(chargeCodes, allProducts);
-        List<RateKey> allRatesKeys = chargeCodePerProduct.stream()
-                .map(pair -> new RateKey(pair.getLeft(), pair.getRight())).collect(Collectors.toList());
 
-        ManufactureBuilder<Rate, RateKey> manufactureBuilder = ManufactureBuilder.create();
+        ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
         manufactureBuilder
                 .withExistingElements(rates)
-                .withElementConstructor(rateKey -> new Rate(rateKey.getChargeCode(), EnumSet.of(rateKey.getProduct())))
-                .withIntermediateEndResult(allRatesKeys)
+                .withKeyProperty(chargeCodes, Rate::getChargeCode)
+                .withKeyProperty(allProducts, Rate::getProducts)
+                .withElementConstructor(key -> new Rate(key.getKeyProperties().get(0),
+                        Collections.singleton(Product.valueOf((String)key.getKeyProperties().get(1)))))
                 // can generate more elements like in this case
                 // but the API could provide another mapper in case you want to map each element one to one
                 .withIntermediateResultsMapper(r ->
-                        r.getProducts().stream().map(p -> new RateKey(r.getChargeCode(), p)).collect(Collectors.toList()))
+                        r.getProducts().stream().map(
+                                p -> new ManufactureBuilder.Key(Arrays.asList(r.getChargeCode(), p.toString())))
+                                .collect(Collectors.toList()))
                 .withReducer(Rate::getChargeCode,
                         (a, b) -> new Rate(a.getChargeCode(), chain(a.getProducts(), b.getProducts())));
 
-        Manufacture<Rate, RateKey> manufacture = manufactureBuilder.build();
+        Manufacture<Rate> manufacture = manufactureBuilder.build();
         Set<Rate> generatedMissingRates = manufacture.generateMissingElements(MERGED);
 
         assertThat(generatedMissingRates, hasSize(2));

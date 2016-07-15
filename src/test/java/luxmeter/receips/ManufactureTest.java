@@ -78,8 +78,8 @@ public class ManufactureTest {
         ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
         manufactureBuilder
                 .withExistingElements(rates)
-                .withKeyProperty(chargeCodes, Rate::getChargeCode)
-                .withKeyProperty(allProducts, Rate::getProducts)
+                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(key -> new Rate(key.getKeyProperties().get(0),
                         Collections.singleton(Product.valueOf((String)key.getKeyProperties().get(1)))))
                 // can generate more elements like in this case
@@ -98,6 +98,37 @@ public class ManufactureTest {
                         "Rate{ChargeCode='5510', products=[XX]}",
                         "Rate{ChargeCode='5510', products=[TX]}"));
     }
+
+    public void shouldGenerateMissingRatesWithoutOverridingDefaults() {
+        List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
+        Set<Product> allProducts = EnumSet.allOf(Product.class);
+        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+
+        ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
+        manufactureBuilder
+                .withExistingElements(rates)
+                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
+                .withElementConstructor(key -> new Rate(key.getKeyProperties().get(0),
+                        Collections.singleton(Product.valueOf((String)key.getKeyProperties().get(1)))))
+                // can generate more elements like in this case
+                // but the API could provide another mapper in case you want to map each element one to one
+                .withIntermediateResultsMapper(r ->
+                        r.getProducts().stream().map(
+                                p -> new ManufactureBuilder.Key(Arrays.asList(r.getChargeCode(), p.toString())))
+                                .collect(Collectors.toList()));
+
+        Manufacture<Rate> manufacture = manufactureBuilder.build();
+        Set<Rate> generatedMissingRates = manufacture.generateMissingElements();
+
+        assertThat(generatedMissingRates, hasSize(3));
+        assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
+                containsInAnyOrder("Rate{ChargeCode='5500', products=[XX]}",
+                        "Rate{ChargeCode='5510', products=[XX]}",
+                        "Rate{ChargeCode='5510', products=[TX]}"));
+    }
+
+
     @Test
     public void shouldGenerateMissingRatesAndMerge() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
@@ -110,8 +141,8 @@ public class ManufactureTest {
         ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
         manufactureBuilder
                 .withExistingElements(rates)
-                .withKeyProperty(chargeCodes, Rate::getChargeCode)
-                .withKeyProperty(allProducts, Rate::getProducts)
+                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(key -> new Rate(key.getKeyProperties().get(0),
                         Collections.singleton(Product.valueOf((String)key.getKeyProperties().get(1)))))
                 // can generate more elements like in this case

@@ -1,7 +1,6 @@
 package luxmeter.receips;
 
 import luxmeter.collectionutils.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.BinaryOperator;
@@ -9,7 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class ManufactureBuilder<T> {
-    private List<Pair<Collection<?>, Function<T, ?>>> keyProperties = new ArrayList<>();
+    private List<KeyProperty<T, ?>> keyProperties = new ArrayList<>();
 
     private Collection<T> existingElements;
     private Collection<Key> intermediateEndResult; // goal
@@ -48,29 +47,80 @@ public final class ManufactureBuilder<T> {
         return this;
     }
 
-    public ManufactureBuilder<T> withKeyProperty(Collection<?> valuesRange, Function<T, ?> propertyExtractor) {
-        keyProperties.add(Pair.of(valuesRange, propertyExtractor));
+    public <R> ManufactureBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, SingleValueExtractor<T, R> propertyExtractor) {
+        keyProperties.add(new KeyProperty<>(propertyName, propertyExtractor, valuesRange));
         return this;
+    }
+
+    public <R, C extends Collection<R>> ManufactureBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor) {
+        keyProperties.add(new KeyProperty<>(propertyName, propertyExtractor, valuesRange));
+        return this;
+    }
+
+    public interface SingleValueExtractor<T, R> extends Function<T, R> {
+
+    }
+
+    public interface ValuesExtractor<T, R, C extends Collection<R>> extends Function<T, C> {
+
     }
 
 
     @SuppressWarnings("unchecked")
     public Manufacture<T> build() {
-        List<List<String>> valueRanges = keyProperties.stream().map(pair -> pair.getLeft().stream().map(Object::toString).collect(Collectors.toList())).collect(Collectors.toList());
         // lists[0] -> chargecodes
         // lists[1] -> products
         // lists[2] -> zones
-        List<String>[] lists = (List<String>[]) valueRanges.toArray(new List[0]);
+        List<List<String>> valueRangesAsString = keyProperties.stream()
+                .map(keyProperty -> keyProperty.getValuesRange().stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList()))
+                .collect(Collectors.toList());
+        
+        List<String>[] lists = (List<String>[]) valueRangesAsString.toArray(new List[0]);
         List<List<String>> product = (List<List<String>>)(List<?>) CollectionUtils.product(lists);
         Set<Key> collect = product.stream().map(Key::new).collect(Collectors.toSet());
         intermediateEndResult = collect;
         if (this.intermediateResultsMapper == null) {
             intermediateResultMapper = concreteElement -> {
-                List<String> combination = keyProperties.stream().map(Pair::getRight).map(extractor -> extractor.apply(concreteElement).toString()).collect(Collectors.toList());
+                List<String> combination = keyProperties.stream()
+                        .map(KeyProperty::getValueExtractor)
+                        .map(extractor -> extractor.apply(concreteElement).toString())
+                        .collect(Collectors.toList());
                 return new Key(combination);
             };
         }
         return new Manufacture<>(this);
+    }
+
+    private static final class KeyProperty<T, R> {
+        private final String propertyName;
+        private final Function<T, ?> valueExtractor;
+        private final Collection<R> valuesRange;
+
+        public KeyProperty(String propertyName, SingleValueExtractor<T, R> valueExtractor, Collection<R> valuesRange) {
+            this.propertyName = propertyName;
+            this.valueExtractor = valueExtractor;
+            this.valuesRange = valuesRange;
+        }
+
+        public <C extends Collection<R>> KeyProperty(String propertyName, ValuesExtractor<T, R, C> valueExtractor, Collection<R> valuesRange) {
+            this.propertyName = propertyName;
+            this.valueExtractor = valueExtractor;
+            this.valuesRange = valuesRange;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public Function<T, ?> getValueExtractor() {
+            return valueExtractor;
+        }
+
+        public Collection<R> getValuesRange() {
+            return valuesRange;
+        }
     }
 
     public static final class Key {

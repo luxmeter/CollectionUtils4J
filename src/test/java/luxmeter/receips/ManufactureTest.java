@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.CollectionUtils.chain;
 import static luxmeter.collectionutils.CollectionUtils.println;
-import static luxmeter.receips.ManufactureBuilder.IntermediateResultGenerationInstruction.GENERATE_PRO_VALUES;
 import static luxmeter.receips.ManufactureBuilder.MergeType.MERGED;
 import static luxmeter.receips.ManufactureTest.Product.PX;
 import static luxmeter.receips.ManufactureTest.Product.TX;
@@ -80,7 +79,7 @@ public class ManufactureTest {
         manufactureBuilder
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
-                .withKeyProperty("product", allProducts, Rate::getProducts, GENERATE_PRO_VALUES)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(
                         key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))));
 
@@ -107,7 +106,7 @@ public class ManufactureTest {
         manufactureBuilder
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
-                .withKeyProperty("product", allProducts, Rate::getProducts, GENERATE_PRO_VALUES)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))))
                 .withReducer(Rate::getChargeCode,
                         (a, b) -> new Rate(a.getChargeCode(), chain(a.getProducts(), b.getProducts())));

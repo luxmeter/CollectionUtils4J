@@ -3,7 +3,7 @@ Collection of functions I missed in Java and popular 3rd party libraries
 
 I created this project initially because I thought neither the Java API nor 3rd party
 libraries as Google Guava or Apache CollectionUtls would provide
-convenient methods to sort a collection by a user defined (composed-)key.
+convenient methods to sort a collection by a user defined (composed-)elementAbstraction.
 
 However, I found out that the Comparator class of the Java API was updated in Java8 (people make still fun of me therefor).
 Theoretically, this project could be removed but I decided against it.
@@ -19,7 +19,7 @@ persons.sort(comparing(Person::getFirstName)
 ```
 
 If you forget to define the nullFirst comparator, you will get a NullPointerException in case the middlename is null.
-My API considers null values always as possible values for each part of the key:
+My API considers null values always as possible values for each part of the elementAbstraction:
 
 **Sorting of nullable keys with the CollectionUtils API**
 

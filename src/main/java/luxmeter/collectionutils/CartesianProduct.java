@@ -13,6 +13,12 @@ final class CartesianProduct implements Iterable<List<Object>> {
         totalColumnSize = this.vectors.size();
     }
 
+    public CartesianProduct(Collection<? extends Collection<?>> vectors) {
+        this.vectors = new ArrayList<>(vectors);
+        totalRowSize = calcRowSize(this.vectors);
+        totalColumnSize = this.vectors.size();
+    }
+
     @Override
     public Iterator<List<Object>> iterator() {
         return new Iterator<List<Object>>() {

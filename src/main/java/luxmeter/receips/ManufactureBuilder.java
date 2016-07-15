@@ -8,6 +8,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.CollectionUtils.*;
+import static luxmeter.receips.ManufactureBuilder.IntermediateResultGenerationInstruction.GENERATE_PRO_SINGLE_VALUE;
+import static luxmeter.receips.ManufactureBuilder.IntermediateResultGenerationInstruction.GENERATE_PRO_VALUES;
 
 public final class ManufactureBuilder<T> {
     private List<KeyPropertyMetadata<T, ?>> keyProperties = new ArrayList<>();
@@ -33,11 +35,6 @@ public final class ManufactureBuilder<T> {
         return this;
     }
 
-    public ManufactureBuilder<T> withIntermediateResultsMapper(Function<T, Collection<ElementAbstraction>>  intermediateResultsMapper) {
-        this.intermediateResultsMapper = intermediateResultsMapper;
-        return this;
-    }
-
     public ManufactureBuilder<T> withElementConstructor(Function<ElementAbstraction, T> elementConstructor) {
         this.elementConstructor = elementConstructor;
         return this;
@@ -55,7 +52,12 @@ public final class ManufactureBuilder<T> {
     }
 
     public <R, C extends Collection<R>> ManufactureBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor) {
-        keyProperties.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange));
+        keyProperties.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, GENERATE_PRO_SINGLE_VALUE));
+        return this;
+    }
+
+    public <R, C extends Collection<R>> ManufactureBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor, IntermediateResultGenerationInstruction generationInstruction) {
+        keyProperties.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, generationInstruction));
         return this;
     }
 
@@ -65,6 +67,11 @@ public final class ManufactureBuilder<T> {
 
     public interface ValuesExtractor<T, R, C extends Collection<R>> extends Function<T, C> {
 
+    }
+
+    public enum IntermediateResultGenerationInstruction {
+        GENERATE_PRO_SINGLE_VALUE,
+        GENERATE_PRO_VALUES
     }
 
 
@@ -85,7 +92,38 @@ public final class ManufactureBuilder<T> {
                         .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))
                 .collect(Collectors.toList());
         intermediateEndResult = namedProduct.stream().map(ElementAbstraction::new).collect(Collectors.toSet());
-        if (this.intermediateResultsMapper == null) {
+
+        List<String> propertyNamesForGeneration = keyProperties.stream().filter(keyProperty -> keyProperty.getGenerationInstruction() == GENERATE_PRO_VALUES).map(KeyPropertyMetadata::getPropertyName).collect(Collectors.toList());
+
+        if (!propertyNamesForGeneration.isEmpty() && intermediateResultMapper == null && intermediateResultsMapper == null) {
+            intermediateResultsMapper = concreteElement -> {
+                List<Collection> collect = propertyNamesForGeneration.stream().map(propertyName -> {
+                    KeyPropertyMetadata<T, ?> propertyMetadata = keyProperties.stream().filter(prop -> prop.getPropertyName().equals(propertyName)).findFirst().orElse(null);
+                    Collection value = (Collection) propertyMetadata.getValueExtractor().apply(concreteElement);
+                    return value;
+                }).collect(Collectors.toList());
+                List<List<Object>> productForGeneration = product(collect);
+                Object result = productForGeneration.stream()
+                        .flatMap(singleCombination ->
+                                toList(zip(keyProperties.stream()
+                                        .filter(keyProperty -> keyProperty.getGenerationInstruction() == GENERATE_PRO_VALUES)
+                                        .map(KeyPropertyMetadata::getPropertyName)
+                                        .collect(Collectors.toList()), singleCombination)).stream()
+                                        .flatMap(pair ->
+                                                ((Collection) pair.getRight()).stream()
+                                                        .map(e -> {
+                                                            Map<String, Object> map = keyProperties.stream()
+                                                                    .filter(keyProperty -> keyProperty.getGenerationInstruction() == GENERATE_PRO_SINGLE_VALUE)
+                                                                    .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
+                                                                            keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
+                                                            map.put(pair.getLeft(), e);
+                                                            return new ElementAbstraction(map);
+                                                        })))
+                        .collect(Collectors.toList());
+                return (List<ElementAbstraction>)(List<?>)result;
+            };
+        }
+        else if ( intermediateResultsMapper == null && intermediateResultMapper == null) {
             intermediateResultMapper = concreteElement -> {
                 Map<String, Object> keyValues = keyProperties.stream()
                         .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
@@ -105,18 +143,21 @@ public final class ManufactureBuilder<T> {
         private final Function<T, ?> valueExtractor;
         private final Function<?, String> toStringMapper;
         private final Collection<R> valuesRange;
+        private final IntermediateResultGenerationInstruction generationInstruction;
 
         public KeyPropertyMetadata(String propertyName, SingleValueExtractor<T, R> valueExtractor, Collection<R> valuesRange) {
             this.propertyName = propertyName;
             this.valueExtractor = valueExtractor;
             this.valuesRange = valuesRange;
+            this.generationInstruction = GENERATE_PRO_SINGLE_VALUE;
             this.toStringMapper = Object::toString;
         }
 
-        public <C extends Collection<R>> KeyPropertyMetadata(String propertyName, ValuesExtractor<T, R, C> valueExtractor, Collection<R> valuesRange) {
+        public <C extends Collection<R>> KeyPropertyMetadata(String propertyName, ValuesExtractor<T, R, C> valueExtractor, Collection<R> valuesRange, IntermediateResultGenerationInstruction generationInstruction) {
             this.propertyName = propertyName;
             this.valueExtractor = valueExtractor;
             this.valuesRange = valuesRange;
+            this.generationInstruction = generationInstruction;
             this.toStringMapper = Object::toString;
         }
 
@@ -134,6 +175,10 @@ public final class ManufactureBuilder<T> {
 
         public Function<?, String> getToStringMapper() {
             return toStringMapper;
+        }
+
+        public IntermediateResultGenerationInstruction getGenerationInstruction() {
+            return generationInstruction;
         }
     }
 

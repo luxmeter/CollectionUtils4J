@@ -1,12 +1,18 @@
 package luxmeter.collectionutils;
 
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -47,11 +53,19 @@ public class CollectionUtilsTest {
     }
 
     @Test
-    public void shouldZipAsEnumerationStream() {
+    public void shouldZipStreamOfSameLength() {
         List<Pair<Integer, String>> sequencedValues =
                 zip(IntStream.range(0, 3).boxed(), Stream.of("a", "b", "c")).collect(Collectors.toList());
         assertThat(sequencedValues, contains(
                 Pair.of(0, "a"), Pair.of(1, "b"), Pair.of(2, "c")));
+    }
+
+    @Test
+    public void shouldZipStreamsOfUnEqualLengths() {
+        List<Pair<Integer, String>> sequencedValues =
+                zip(IntStream.range(0, 3).boxed(), Stream.of("a", "b"), null, null).collect(Collectors.toList());
+        assertThat(sequencedValues, contains(
+                Pair.of(0, "a"), Pair.of(1, "b"), Pair.of(2, null)));
     }
 
     @Test
@@ -68,6 +82,22 @@ public class CollectionUtilsTest {
     @Test
     public void shouldCycle3Times() {
         assertThat(cycle(Arrays.asList("a", "b"), 3), contains("a", "b", "a", "b", "a", "b"));
+    }
+
+    @Test
+    public void shouldRemoveElementsFromList() {
+        List<String> source = Arrays.asList("a", "b", "c", "d");
+        List<String> toRemove = Arrays.asList("a", "c");
+        List<String> strings = removeAll(source, toRemove);
+        assertThat(strings, contains("b", "d"));
+    }
+
+    @Test
+    public void shouldRemoveElementsFromSet() {
+        Set<String> source = Sets.newHashSet("a", "b", "c", "d");
+        List<String> toRemove = Arrays.asList("a", "c");
+        Set<String> strings = removeAll(source, toRemove);
+        assertThat(strings, contains("b", "d"));
     }
 
     @Test

@@ -338,7 +338,7 @@ public final class CollectionUtils {
      * @param elementsToRemove elements to remove
      * @return new collection without the removed elements
      */
-    public static <T> List<T> removeAll(List<T> toRemoveFrom, List<T> elementsToRemove) {
+    public static <T> List<T> removeAll(List<T> toRemoveFrom, Collection<T> elementsToRemove) {
         ArrayList<T> subtract = new ArrayList<>(toRemoveFrom);
         subtract.removeAll(elementsToRemove);
         return subtract;
@@ -350,8 +350,8 @@ public final class CollectionUtils {
      * @param elementsToRemove elements to remove
      * @return new collection without the removed elements
      */
-    public static <T> Set<T> removeAll(Set<T> toRemoveFrom, Set<T> elementsToRemove) {
-        Set<T> subtract = new HashSet<T>(toRemoveFrom);
+    public static <T> Set<T> removeAll(Set<T> toRemoveFrom, Collection<T> elementsToRemove) {
+        Set<T> subtract = new HashSet<>(toRemoveFrom);
         subtract.removeAll(elementsToRemove);
         return subtract;
     }

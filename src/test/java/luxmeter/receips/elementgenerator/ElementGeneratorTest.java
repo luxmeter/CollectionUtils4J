@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.CollectionUtils.chain;
 import static luxmeter.collectionutils.CollectionUtils.println;
+import static luxmeter.receips.elementgenerator.ElementGeneratorTest.Zone.*;
 import static luxmeter.receips.elementgenerator.MergeType.MERGED;
 import static luxmeter.receips.elementgenerator.ElementGeneratorTest.Product.PX;
 import static luxmeter.receips.elementgenerator.ElementGeneratorTest.Product.TX;
@@ -79,6 +80,42 @@ public class ElementGeneratorTest {
     }
 
     @Test
+    public void shouldGenerateMissingSimpleRatesWtihoutCollectionProperties() {
+        List<SimpleRate> rates = Arrays.asList(new SimpleRate("5500", PX, A), new SimpleRate("5510", PX, B));
+        Set<Product> allProducts = EnumSet.allOf(Product.class);
+        List<String> chargeCodes = rates.stream().map(SimpleRate::getChargeCode).collect(Collectors.toList());
+        Set<Zone> allZones = EnumSet.allOf(Zone.class);
+
+        ElementGeneratorBuilder<SimpleRate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
+                .withExistingElements(rates)
+                .withKeyProperty("chargeCode", chargeCodes, SimpleRate::getChargeCode)
+                .withKeyProperty("product", allProducts, SimpleRate::getProduct)
+                .withKeyProperty("zone", allZones, SimpleRate::getZone)
+                .withElementConstructor(
+                        key -> new SimpleRate(key.get("chargeCode"), key.get("product"), key.get("zone")));
+
+        ElementGenerator<SimpleRate> elementGenerator = elementGeneratorBuilder.build();
+        Set<SimpleRate> generatedMissingSimpleRates = elementGenerator.generateMissingElements();
+
+        // should generate 12 - 2 = 10
+        assertThat(generatedMissingSimpleRates, hasSize(10));
+        assertThat(generatedMissingSimpleRates.stream().map(SimpleRate::toString).collect(Collectors.toList()),
+                containsInAnyOrder(
+                        "Rate{chargeCode='5510', products=PX, zones=A}",
+                        "Rate{chargeCode='5500', products=TX, zones=A}",
+                        "Rate{chargeCode='5510', products=TX, zones=B}",
+                        "Rate{chargeCode='5500', products=PX, zones=B}",
+                        "Rate{chargeCode='5510', products=TX, zones=A}",
+                        "Rate{chargeCode='5500', products=XX, zones=B}",
+                        "Rate{chargeCode='5500', products=XX, zones=A}",
+                        "Rate{chargeCode='5500', products=TX, zones=B}",
+                        "Rate{chargeCode='5510', products=XX, zones=B}",
+                        "Rate{chargeCode='5510', products=XX, zones=A}"
+                ));
+    }
+
+    @Test
     public void shouldGenerateMissingRates() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
@@ -134,8 +171,8 @@ public class ElementGeneratorTest {
     @Test
     public void shouldGenerateMissingRatesWithZones() {
         List<Rate> rates = Arrays.asList(
-                new Rate("5500", EnumSet.of(PX, TX), EnumSet.of(Zone.A, Zone.B)),
-                new Rate("5510", EnumSet.of(PX), EnumSet.of(Zone.A)));
+                new Rate("5500", EnumSet.of(PX, TX), EnumSet.of(A, B)),
+                new Rate("5510", EnumSet.of(PX), EnumSet.of(A)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
         Set<Zone> allZones = EnumSet.allOf(Zone.class);
 
@@ -253,6 +290,39 @@ public class ElementGeneratorTest {
                     "chargeCode='" + chargeCode + '\'' +
                     ", products=" + sortedProducts +
                     ", zones=" +  sortedZones +
+                    '}';
+        }
+    }
+
+    public static final class SimpleRate {
+        private String chargeCode;
+        private Product product;
+        private Zone zone;
+
+        public SimpleRate(String chargeCode, Product products, Zone zones) {
+            this.product = products;
+            this.chargeCode = chargeCode;
+            this.zone = zones;
+        }
+
+        public String getChargeCode() {
+            return chargeCode;
+        }
+
+        public Product getProduct() {
+            return product;
+        }
+
+        public Zone getZone() {
+            return zone;
+        }
+
+        @Override
+        public String toString() {
+            return "Rate{" +
+                    "chargeCode='" + chargeCode + '\'' +
+                    ", products=" + product +
+                    ", zones=" +  zone +
                     '}';
         }
     }

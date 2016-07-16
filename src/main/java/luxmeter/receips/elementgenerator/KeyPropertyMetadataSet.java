@@ -35,13 +35,6 @@ class KeyPropertyMetadataSet<T> {
                         keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
     }
 
-    public KeyPropertyMetadata<T, ?> getKeyPropertyMetadataBy(String propertyName) {
-        return keyPropertiesMetadata.stream()
-                .filter(prop -> prop.getPropertyName().equals(propertyName))
-                .findFirst()
-                .orElse(null);
-    }
-
     public Map<String, Object> getPropertyValues(List<Object> singleCombination, Predicate<KeyPropertyMetadata<T, ?>> predicate) {
         Stream<String> propertyNames = keyPropertiesMetadata.stream()
                 .filter(predicate::test)

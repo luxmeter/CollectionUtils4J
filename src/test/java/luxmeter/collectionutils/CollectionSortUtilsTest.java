@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.util.Iterator;
 import java.util.List;
 
+import static luxmeter.collectionutils.CollectionSortUtils.*;
 import static luxmeter.collectionutils.CollectionUtils.*;
 import static luxmeter.collectionutils.ComparableWithSortOrder.differently;
 import static luxmeter.collectionutils.NullOrder.NULL_FIRST;
@@ -15,7 +16,7 @@ import static luxmeter.collectionutils.SortOrder.ASC;
 import static luxmeter.collectionutils.SortOrder.DESC;
 import static org.junit.Assert.*;
 
-public class SortTest {
+public class CollectionSortUtilsTest {
     @Test
     public void shouldSortByLastNameAsComposedKeyInAscendingOrder() {
         List<Person> persons = createPersons();

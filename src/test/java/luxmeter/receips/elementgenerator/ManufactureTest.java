@@ -1,7 +1,7 @@
-package luxmeter.receips;
+package luxmeter.receips.elementgenerator;
 
 import luxmeter.collectionutils.CollectionUtils;
-import luxmeter.receips.ManufactureBuilder.Manufacture;
+import luxmeter.receips.elementgenerator.ManufactureBuilder.Manufacture;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
@@ -12,9 +12,9 @@ import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.CollectionUtils.chain;
 import static luxmeter.collectionutils.CollectionUtils.println;
-import static luxmeter.receips.ManufactureBuilder.MergeType.MERGED;
-import static luxmeter.receips.ManufactureTest.Product.PX;
-import static luxmeter.receips.ManufactureTest.Product.TX;
+import static luxmeter.receips.elementgenerator.ManufactureBuilder.MergeType.MERGED;
+import static luxmeter.receips.elementgenerator.ManufactureTest.Product.PX;
+import static luxmeter.receips.elementgenerator.ManufactureTest.Product.TX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;

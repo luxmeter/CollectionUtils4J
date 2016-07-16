@@ -1,4 +1,4 @@
-package luxmeter.receips;
+package luxmeter.receips.elementgenerator;
 
 import org.apache.commons.lang3.tuple.Pair;
 

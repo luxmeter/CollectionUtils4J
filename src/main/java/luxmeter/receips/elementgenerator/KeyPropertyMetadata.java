@@ -11,7 +11,6 @@ final class KeyPropertyMetadata<T, R> {
     private final Collection<R> valuesRange;
     private final boolean isCollection;
 
-
     private Function<T, Object> nonNullValueExtractor(String propertyName, Function<T, ?> valueExtractor) {
         return concreteElement -> {
             Object val = valueExtractor.apply(concreteElement);
@@ -33,7 +32,6 @@ final class KeyPropertyMetadata<T, R> {
         }
         return val == null;
     }
-
 
     public KeyPropertyMetadata(
             String propertyName, SingleValueExtractor<T, R> valueExtractor, Collection<R> valuesRange) {

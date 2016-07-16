@@ -1,17 +1,14 @@
 package luxmeter.receips.elementgenerator;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static luxmeter.collectionutils.CollectionUtils.*;
 
 public final class ElementGeneratorBuilder<T> {
-    private List<KeyPropertyMetadata<T, ?>> keyPropertiesMetadata = new ArrayList<>();
+    private KeyPropertyMetadataSet<T> keyPropertyMetadataSet = new KeyPropertyMetadataSet<T>();
 
     private Collection<T> existingElements;
     private Collection<ElementAbstraction> intermediateEndResult; // goal
@@ -32,40 +29,23 @@ public final class ElementGeneratorBuilder<T> {
 
     private Function<T, ElementAbstraction> createIntermediateResultMapper() {
         return concreteElement -> {
-            Map<String, Object> keyValues = getPropertyValues(concreteElement);
+            Map<String, Object> keyValues = keyPropertyMetadataSet.getPropertyValues(concreteElement);
             return new ElementAbstraction(concreteElement, keyValues);
         };
     }
 
-    private Map<String, Object> getPropertyValues(T concreteElement) {
-        return keyPropertiesMetadata.stream()
-                .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
-                        keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
-    }
-
-    private Function<T, Collection<ElementAbstraction>> createIntermediateResultsMapper(List<String> propertyNamesForGeneration) {
+    private Function<T, Collection<ElementAbstraction>> createIntermediateResultsMapper() {
         return concreteElement -> {
-            List<Collection> collect = propertyNamesForGeneration.stream().map(propertyName -> {
-                KeyPropertyMetadata<T, ?> propertyMetadata = getKeyPropertyMetadataBy(propertyName);
-                Collection value = (Collection) propertyMetadata.getValueExtractor().apply(concreteElement);
-                return value;
-            }).collect(Collectors.toList());
-            List<List<Object>> productForGeneration = product(collect.toArray(new Collection[collect.size()]));
+            Collection<Object> collect = keyPropertyMetadataSet.getPropertyValues(
+                    concreteElement, KeyPropertyMetadata::isCollection).values();
+            List<List<Object>> product = product(collect.toArray(new Collection[collect.size()]));
 
-            // productForGeneration[0] = (PX,A)
-            List<ElementAbstraction> result = productForGeneration.stream()
-                    .map(this::namedValues)
+            // product[0] = (PX,A)
+            List<ElementAbstraction> result = product.stream()
+                    .map(singleCombination -> keyPropertyMetadataSet.getPropertyValues(
+                            singleCombination, KeyPropertyMetadata::isCollection))
                     .map(map -> {
-                        // TODO(refactor)
-                        List<Object> values = keyPropertiesMetadata.stream().filter(prop -> !prop.isCollection())
-                                .map(KeyPropertyMetadata::getValueExtractor)
-                                .map(extractor -> extractor.apply(concreteElement))
-                                .collect(Collectors.toList());
-                        List<String> names = keyPropertiesMetadata.stream()
-                                .filter(p -> !p.isCollection())
-                                .map(KeyPropertyMetadata::getPropertyName)
-                                .collect(Collectors.toList());
-                        zip(names, values).forEach(pair -> map.put(pair.getLeft(), pair.getRight()));
+                        map.putAll(keyPropertyMetadataSet.getPropertyValues(concreteElement, p -> !p.isCollection()));
                         return new ElementAbstraction(map);
                     }).collect(Collectors.toList());
             return result;
@@ -78,7 +58,7 @@ public final class ElementGeneratorBuilder<T> {
 
     @SuppressWarnings("unchecked")
     private Set<ElementAbstraction> createIntermediateEndResult() {
-        List<List<?>> valueRanges = getValueRanges();
+        List<List<?>> valueRanges = keyPropertyMetadataSet.getValueRanges();
         List<List<Object>> productOfAllValues =
                 product((Collection[]) valueRanges.toArray(new List[valueRanges.size()]));
         List<Map<String, ?>> namedProductOfAllValues = attachNames(productOfAllValues);
@@ -87,37 +67,8 @@ public final class ElementGeneratorBuilder<T> {
 
     private List<Map<String, ?>> attachNames(List<List<Object>> productOfAllValues) {
         return productOfAllValues.stream()
-                .map(singleCombination -> toList(zip(getKeyPropertyNames(), singleCombination))
-                        .stream()
-                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight))
-                ).collect(Collectors.toList());
-    }
-
-    private List<List<?>> getValueRanges() {
-        return keyPropertiesMetadata.stream()
-                .map(keyProperty -> keyProperty.getValuesRange().stream()
-                        .collect(Collectors.toList()))
+                .map(singleCombination -> keyPropertyMetadataSet.getPropertyValues(singleCombination))
                 .collect(Collectors.toList());
-    }
-
-    private KeyPropertyMetadata<T, ?> getKeyPropertyMetadataBy(String propertyName) {
-        return keyPropertiesMetadata.stream()
-                .filter(prop -> prop.getPropertyName().equals(propertyName))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private Map<String, Object> namedValues(List<Object> singleCombination) {
-        Stream<String> propertyNames = keyPropertiesMetadata.stream()
-                .filter(KeyPropertyMetadata::isCollection)
-                .map(KeyPropertyMetadata::getPropertyName);
-        List<Pair<String, Object>> zipped = zip(propertyNames, singleCombination.stream()).collect(Collectors.toList());
-        Map<String, Object> map = zipped.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-        return map;
-    }
-
-    private List<String> getKeyPropertyNames() {
-        return keyPropertiesMetadata.stream().map(KeyPropertyMetadata::getPropertyName).collect(Collectors.toList());
     }
 
     public ElementGeneratorBuilder<T> withExistingElements(Collection<T> existingElements) {
@@ -137,12 +88,12 @@ public final class ElementGeneratorBuilder<T> {
     }
 
     public <R> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, SingleValueExtractor<T, R> propertyExtractor) {
-        keyPropertiesMetadata.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange));
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange));
         return this;
     }
 
     public <R, C extends Collection<R>> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor) {
-        keyPropertiesMetadata.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, true));
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, true));
         return this;
     }
 
@@ -151,13 +102,8 @@ public final class ElementGeneratorBuilder<T> {
         intermediateEndResult = createIntermediateEndResult();
 
         if (!intermediateResultMappersExist()) {
-            List<String> propertyNamesForGeneration = keyPropertiesMetadata.stream()
-                    .filter(KeyPropertyMetadata::isCollection)
-                    .map(KeyPropertyMetadata::getPropertyName)
-                    .collect(Collectors.toList());
-
-            if (!propertyNamesForGeneration.isEmpty()) {
-                intermediateResultsMapper = createIntermediateResultsMapper(propertyNamesForGeneration);
+            if (keyPropertyMetadataSet.atLeastOnePropertyIsACollection()) {
+                intermediateResultsMapper = createIntermediateResultsMapper();
             } else {
                 intermediateResultMapper = createIntermediateResultMapper();
             }

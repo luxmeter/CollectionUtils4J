@@ -4,9 +4,11 @@ package luxmeter.collectionutils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static luxmeter.collectionutils.CollectionUtils.*;
 import static org.hamcrest.Matchers.*;
@@ -31,6 +33,16 @@ public class CollectionUtilsTest {
         Iterable<Pair<String, Integer>> zipped = zip( Arrays.asList("a", "b"), Arrays.asList(1, 2, 3, 4),
                 defaultValue, null);
         assertThat(zipped, contains(Pair.of("a", 1), Pair.of("b", 2), Pair.of(defaultValue, 3), Pair.of(defaultValue, 4)));
+    }
+
+    @Test
+    public void shouldZipAsEnumeration() {
+        List<String> values = Arrays.asList("a", "b", "c");
+        List<Integer> sequence = IntStream.range(0, values.size())
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        Iterable<Pair<Integer, String>> sequencedValues = zip(sequence, values); // [(0, "a"), (1, "b"), (2, "c")]
+        assertThat(sequencedValues, contains(
+                Pair.of(0, "a"), Pair.of(1, "b"), Pair.of(2, "c")));
     }
 
     @Test

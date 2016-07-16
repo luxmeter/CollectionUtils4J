@@ -8,12 +8,15 @@ final class CartesianProduct implements Iterable<List<Object>> {
     private final int totalRowSize;
     private final int totalColumnSize;
 
+    @SuppressWarnings("unchecked")
     public CartesianProduct(Collection... vectors) {
-        this.vectors = Arrays.asList(vectors);
+        // need to convert each vector to a list since they don't need to be one necessary
+        this.vectors = (List<Collection>)(List<?>) Arrays.asList(vectors).stream().map(ArrayList::new).collect(Collectors.toList());
         totalRowSize = calcRowSize(this.vectors);
         totalColumnSize = this.vectors.size();
     }
 
+    @SuppressWarnings("unchecked")
     public CartesianProduct(List<? extends Collection> vectors) {
         this.vectors = (List<Collection>)(List<?>)vectors.stream().map(ArrayList::new).collect(Collectors.toList());
         totalRowSize = calcRowSize(this.vectors);

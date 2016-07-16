@@ -324,11 +324,7 @@ public final class CollectionUtils {
      * @param lists collections over which the product should be built
      * @return `cartesian` product over the two collections
      */
-    public static List<List<Object>> product(List... lists) {
-        return toList(new CartesianProduct(lists));
-    }
-
-    public static List<List<Object>> productWithLists(List<? extends Collection> lists) {
+    public static List<List<Object>> product(Collection... lists) {
         return toList(new CartesianProduct(lists));
     }
 

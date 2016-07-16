@@ -99,6 +99,79 @@ public final class ElementGeneratorBuilder<T> {
     private ElementGeneratorBuilder() {
     }
 
+    private Function<T, ElementAbstraction> createIntermediateResultMapper() {
+        return concreteElement -> {
+            Map<String, Object> keyValues = keyPropertiesMetadata.stream()
+                    .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
+                            keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
+            return new ElementAbstraction(concreteElement, keyValues);
+        };
+    }
+
+    private Function<T, Collection<ElementAbstraction>> createIntermediateResultsMapper(List<String> propertyNamesForGeneration) {
+        return concreteElement -> {
+            List<Collection> collect = propertyNamesForGeneration.stream().map(propertyName -> {
+                KeyPropertyMetadata<T, ?> propertyMetadata = getKeyPropertyMetadataBy(propertyName);
+                Collection value = (Collection) propertyMetadata.getValueExtractor().apply(concreteElement);
+                return value;
+            }).collect(Collectors.toList());
+            List<List<Object>> productForGeneration = productWithLists(collect);
+
+            // productForGeneration[0] = (PX,A)
+            List<ElementAbstraction> result = productForGeneration.stream()
+                    .map(this::namedValues)
+                    .map(map -> {
+                        List<Object> values = keyPropertiesMetadata.stream().filter(prop -> !prop.isCollection)
+                                .map(KeyPropertyMetadata::getValueExtractor)
+                                .map(extractor -> extractor.apply(concreteElement))
+                                .collect(Collectors.toList());
+                        List<String> names = keyPropertiesMetadata.stream()
+                                .filter(p -> !p.isCollection())
+                                .map(KeyPropertyMetadata::getPropertyName)
+                                .collect(Collectors.toList());
+                        zip(names, values).forEach(pair -> map.put(pair.getLeft(), pair.getRight()));
+                        return new ElementAbstraction(map);
+                    }).collect(Collectors.toList());
+            return result;
+        };
+    }
+
+    private boolean intermediateResultMappersExist() {
+        return intermediateResultMapper != null || intermediateResultsMapper != null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<ElementAbstraction> createIntermediateEndResult() {
+        List<List<?>> valueRanges = getValueRanges();
+        List<List<?>> productOfAllValues = (List<List<?>>) (List<?>) product(valueRanges.toArray(new List[0]));
+        List<Map<String, ?>> namedProductOfAllValues = productOfAllValues.stream()
+                .map(singleCombination -> toList(zip(getKeyPropertyNames(), singleCombination))
+                        .stream()
+                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight))
+                ).collect(Collectors.toList());
+        return namedProductOfAllValues.stream().map(ElementAbstraction::new).collect(Collectors.toSet());
+    }
+
+    private List<List<?>> getValueRanges() {
+        return keyPropertiesMetadata.stream()
+                .map(keyProperty -> keyProperty.getValuesRange().stream()
+                        .collect(Collectors.toList()))
+                .collect(Collectors.toList());
+    }
+
+    private KeyPropertyMetadata<T, ?> getKeyPropertyMetadataBy(String propertyName) {
+        return keyPropertiesMetadata.stream().filter(prop -> prop.getPropertyName().equals(propertyName)).findFirst().orElse(null);
+    }
+
+    private Map<String, Object> namedValues(List<Object> singleCombination) {
+        List<Pair<String, Object>> zipped = toList(zip(keyPropertiesMetadata.stream()
+                .filter(KeyPropertyMetadata::isCollection)
+                .map(KeyPropertyMetadata::getPropertyName)
+                .collect(Collectors.toList()), singleCombination));
+        Map<String, Object> map = zipped.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+        return map;
+    }
+
     private List<String> getKeyPropertyNames() {
         return keyPropertiesMetadata.stream().map(KeyPropertyMetadata::getPropertyName).collect(Collectors.toList());
     }
@@ -131,72 +204,21 @@ public final class ElementGeneratorBuilder<T> {
 
     @SuppressWarnings("unchecked")
     public ElementGenerator<T> build() {
-        // lists[0] -> chargecodes
-        // lists[1] -> products
-        // lists[2] -> zones
-        List<List<?>> valueRanges = keyPropertiesMetadata.stream()
-                .map(keyProperty -> keyProperty.getValuesRange().stream()
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
+        intermediateEndResult = createIntermediateEndResult();
 
-        List<?>[] lists = (List<?>[]) valueRanges.toArray(new List[0]);
-        List<List<?>> product = (List<List<?>>) (List<?>) product(lists);
-        List<Map<String, ?>> namedProduct = product.stream().map(singleCombination ->
-                toList(zip(getKeyPropertyNames(), singleCombination)).stream()
-                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))
-                .collect(Collectors.toList());
-        intermediateEndResult = namedProduct.stream().map(ElementAbstraction::new).collect(Collectors.toSet());
+        if (!intermediateResultMappersExist()) {
+            List<String> propertyNamesForGeneration = keyPropertiesMetadata.stream()
+                    .filter(KeyPropertyMetadata::isCollection)
+                    .map(KeyPropertyMetadata::getPropertyName)
+                    .collect(Collectors.toList());
 
-        List<String> propertyNamesForGeneration = keyPropertiesMetadata.stream().filter(KeyPropertyMetadata::isCollection).map(KeyPropertyMetadata::getPropertyName).collect(Collectors.toList());
-
-        if (!propertyNamesForGeneration.isEmpty() && intermediateResultMapper == null && intermediateResultsMapper == null) {
-            intermediateResultsMapper = concreteElement -> {
-                List<Collection> collect = propertyNamesForGeneration.stream().map(propertyName -> {
-                    KeyPropertyMetadata<T, ?> propertyMetadata = getKeyPropertyMetadataBy(propertyName);
-                    Collection value = (Collection) propertyMetadata.getValueExtractor().apply(concreteElement);
-                    return value;
-                }).collect(Collectors.toList());
-                List<List<Object>> productForGeneration = productWithLists(collect);
-
-                // productForGeneration[0] = (PX,A)
-                List<ElementAbstraction> result = productForGeneration.stream()
-                        .map(this::namedValues)
-                        .map(map -> {
-                            List<Object> values = keyPropertiesMetadata.stream().filter(prop -> !prop.isCollection)
-                                    .map(KeyPropertyMetadata::getValueExtractor)
-                                    .map(extractor -> extractor.apply(concreteElement))
-                                    .collect(Collectors.toList());
-                            List<String> names = keyPropertiesMetadata.stream()
-                                    .filter(p -> !p.isCollection())
-                                    .map(KeyPropertyMetadata::getPropertyName)
-                                    .collect(Collectors.toList());
-                            zip(names, values).forEach(pair -> map.put(pair.getLeft(), pair.getRight()));
-                            return new ElementAbstraction(map);
-                        }).collect(Collectors.toList());
-                return result;
-            };
-        } else if (intermediateResultsMapper == null && intermediateResultMapper == null) {
-            intermediateResultMapper = concreteElement -> {
-                Map<String, Object> keyValues = keyPropertiesMetadata.stream()
-                        .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
-                                keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
-                return new ElementAbstraction(concreteElement, keyValues);
-            };
+            if (!propertyNamesForGeneration.isEmpty()) {
+                intermediateResultsMapper = createIntermediateResultsMapper(propertyNamesForGeneration);
+            } else {
+                intermediateResultMapper = createIntermediateResultMapper();
+            }
         }
         return new ElementGenerator<>(this);
-    }
-
-    private KeyPropertyMetadata<T, ?> getKeyPropertyMetadataBy(String propertyName) {
-        return keyPropertiesMetadata.stream().filter(prop -> prop.getPropertyName().equals(propertyName)).findFirst().orElse(null);
-    }
-
-    private Map<String, Object> namedValues(List<Object> singleCombination) {
-        List<Pair<String, Object>> zipped = toList(zip(keyPropertiesMetadata.stream()
-                .filter(KeyPropertyMetadata::isCollection)
-                .map(KeyPropertyMetadata::getPropertyName)
-                .collect(Collectors.toList()), singleCombination));
-        Map<String, Object> map = zipped.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-        return map;
     }
 
     public static final class ElementGenerator<T> {

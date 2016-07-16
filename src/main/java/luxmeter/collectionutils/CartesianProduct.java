@@ -1,20 +1,21 @@
 package luxmeter.collectionutils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 final class CartesianProduct implements Iterable<List<Object>> {
-    private final List<Collection<?>> vectors;
+    private final List<Collection> vectors;
     private final int totalRowSize;
     private final int totalColumnSize;
 
-    public CartesianProduct(Collection<?>... vectors) {
+    public CartesianProduct(Collection... vectors) {
         this.vectors = Arrays.asList(vectors);
         totalRowSize = calcRowSize(this.vectors);
         totalColumnSize = this.vectors.size();
     }
 
-    public CartesianProduct(Collection<? extends Collection<?>> vectors) {
-        this.vectors = new ArrayList<>(vectors);
+    public CartesianProduct(List<? extends Collection> vectors) {
+        this.vectors = (List<Collection>)(List<?>)vectors.stream().map(ArrayList::new).collect(Collectors.toList());
         totalRowSize = calcRowSize(this.vectors);
         totalColumnSize = this.vectors.size();
     }
@@ -40,7 +41,7 @@ final class CartesianProduct implements Iterable<List<Object>> {
         // i_0 = i / calcRowSize(vectors.subList(rowIndex, vectors.size()) % vectors.get(0).size()
         List<Object> currentCartesianProductVector = new ArrayList<>(vectors.size());
         for(int columnIndex = 0; columnIndex< totalColumnSize; columnIndex++) {
-            List<Collection<?>> subVectors = vectors.subList(columnIndex, totalColumnSize);
+            List<Collection> subVectors = vectors.subList(columnIndex, totalColumnSize);
             int currentTotalRowSize = calcRowSize(subVectors);
             List<?> currentVector = (List<?>) vectors.get(columnIndex);
             int currentVectorRowIndex = (rowIndex / (currentTotalRowSize / currentVector.size())) % currentVector.size();
@@ -50,7 +51,7 @@ final class CartesianProduct implements Iterable<List<Object>> {
         return currentCartesianProductVector;
     }
 
-    private int calcRowSize(List<Collection<?>> lists) {
+    private int calcRowSize(List<Collection> lists) {
         return lists.stream().map(Collection::size).reduce((a, b) -> a * b).orElse(0);
     }
 }

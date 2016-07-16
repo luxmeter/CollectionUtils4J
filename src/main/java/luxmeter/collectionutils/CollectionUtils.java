@@ -379,7 +379,7 @@ public final class CollectionUtils {
         return toList(new CartesianProduct(lists));
     }
 
-    public static List<List<Object>> product(List<? extends Collection<?>> lists) {
+    public static List<List<Object>> productWithLists(List<? extends Collection> lists) {
         return toList(new CartesianProduct(lists));
     }
 

@@ -97,9 +97,10 @@ public class ElementGeneratorTest {
 
         assertThat(generatedMissingRates, hasSize(3));
         assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
-                containsInAnyOrder("Rate{ChargeCode='5500', products=[XX]}",
-                        "Rate{ChargeCode='5510', products=[XX]}",
-                        "Rate{ChargeCode='5510', products=[TX]}"));
+                containsInAnyOrder(
+                        "Rate{chargeCode='5500', products=[XX], zones=[]}",
+                        "Rate{chargeCode='5510', products=[XX], zones=[]}",
+                        "Rate{chargeCode='5510', products=[TX], zones=[]}"));
     }
 
     @Test
@@ -125,8 +126,47 @@ public class ElementGeneratorTest {
 
         assertThat(generatedMissingRates, hasSize(2));
         assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
-                containsInAnyOrder("Rate{ChargeCode='5500', products=[XX]}",
-                        "Rate{ChargeCode='5510', products=[TX, XX]}"));
+                containsInAnyOrder(
+                        "Rate{chargeCode='5500', products=[XX], zones=[]}",
+                        "Rate{chargeCode='5510', products=[TX, XX], zones=[]}"));
+    }
+
+    @Test
+    public void shouldGenerateMissingRatesWithZones() {
+        List<Rate> rates = Arrays.asList(
+                new Rate("5500", EnumSet.of(PX, TX), EnumSet.of(Zone.A, Zone.B)),
+                new Rate("5510", EnumSet.of(PX), EnumSet.of(Zone.A)));
+        Set<Product> allProducts = EnumSet.allOf(Product.class);
+        Set<Zone> allZones = EnumSet.allOf(Zone.class);
+
+        // what do i expect?
+        List<String> allChargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+
+        ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
+                .withExistingElements(rates)
+                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
+                .withKeyProperty("zone", allZones, Rate::getZones)
+                .withElementConstructor(key -> new Rate(key.get("chargeCode"),
+                        Collections.singleton(key.get("product")),
+                        Collections.singleton(key.get("zone"))));
+
+
+        ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
+        Set<Rate> generatedMissingRates = elementGenerator.generateMissingElements();
+
+        assertThat(generatedMissingRates, hasSize(7));
+        assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
+                containsInAnyOrder(
+                        "Rate{chargeCode='5500', products=[XX], zones=[A]}",
+                        "Rate{chargeCode='5500', products=[XX], zones=[B]}",
+                        "Rate{chargeCode='5510', products=[XX], zones=[B]}",
+                        "Rate{chargeCode='5510', products=[XX], zones=[A]}",
+                        "Rate{chargeCode='5510', products=[PX], zones=[B]}",
+                        "Rate{chargeCode='5510', products=[TX], zones=[B]}",
+                        "Rate{chargeCode='5510', products=[TX], zones=[A]}"
+                ));
     }
 
     public static final class RateKey implements Comparable<RateKey> {
@@ -175,12 +215,20 @@ public class ElementGeneratorTest {
     }
 
     public static final class Rate {
-        private String ChargeCode;
+        private String chargeCode;
         private Set<Product> products;
+        private Set<Zone> zones;
 
         public Rate(String chargeCode, Set<Product> products) {
             this.products = products;
-            ChargeCode = chargeCode;
+            this.chargeCode = chargeCode;
+            zones = Collections.emptySet();
+        }
+
+        public Rate(String chargeCode, Set<Product> products, Set<Zone> zones) {
+            this.products = products;
+            this.chargeCode = chargeCode;
+            this.zones = zones;
         }
 
         public Set<Product> getProducts() {
@@ -188,21 +236,32 @@ public class ElementGeneratorTest {
         }
 
         public String getChargeCode() {
-            return ChargeCode;
+            return chargeCode;
+        }
+
+        public Set<Zone> getZones() {
+            return zones;
         }
 
         @Override
         public String toString() {
-            ArrayList<Product> sorted = new ArrayList<>(this.products);
-            sorted.sort(Comparator.comparing(Product::name));
+            ArrayList<Product> sortedProducts = new ArrayList<>(this.products);
+            sortedProducts.sort(Comparator.comparing(Product::name));
+            ArrayList<Zone> sortedZones = new ArrayList<>(this.zones);
+            sortedZones.sort(Comparator.comparing(Zone::name));
             return "Rate{" +
-                    "ChargeCode='" + ChargeCode + '\'' +
-                    ", products=" + sorted +
+                    "chargeCode='" + chargeCode + '\'' +
+                    ", products=" + sortedProducts +
+                    ", zones=" +  sortedZones +
                     '}';
         }
     }
 
     public enum Product {
         PX, TX, XX
+    }
+
+    public enum Zone {
+        A, B
     }
 }

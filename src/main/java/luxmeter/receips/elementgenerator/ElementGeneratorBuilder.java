@@ -28,10 +28,33 @@ public final class ElementGeneratorBuilder<T> {
         private final Collection<R> valuesRange;
         private final boolean isCollection;
 
+
+        private Function<T, Object> nonNullValueExtractor(String propertyName, Function<T, ?> valueExtractor) {
+            return concreteElement -> {
+                Object val = valueExtractor.apply(concreteElement);
+                if (isNullOrEmpty(val)) {
+                    throw new IllegalArgumentException(
+                            String.format("Error while extracting values from %s: " +
+                                    "It is forbidden for a key property like '%s' " +
+                                    "to return null or an empty collection.",
+                                    concreteElement.toString(), propertyName));
+                }
+                return val;
+            };
+        }
+
+        private boolean isNullOrEmpty(Object val) {
+            if (val instanceof Collection) {
+                return ((Collection) val).isEmpty();
+            }
+            return val == null;
+        }
+
+
         public KeyPropertyMetadata(
                 String propertyName, SingleValueExtractor<T, R> valueExtractor, Collection<R> valuesRange) {
             this.propertyName = propertyName;
-            this.valueExtractor = valueExtractor;
+            this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
             this.valuesRange = valuesRange;
             this.toStringMapper = Object::toString;
             this.isCollection = false;
@@ -41,7 +64,7 @@ public final class ElementGeneratorBuilder<T> {
                 String propertyName, ValuesExtractor<T, R, C> valueExtractor,
                 Collection<R> valuesRange, boolean isCollection) {
             this.propertyName = propertyName;
-            this.valueExtractor = valueExtractor;
+            this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
             this.valuesRange = valuesRange;
             this.toStringMapper = Object::toString;
             this.isCollection = isCollection;
@@ -129,29 +152,28 @@ public final class ElementGeneratorBuilder<T> {
         if (!propertyNamesForGeneration.isEmpty() && intermediateResultMapper == null && intermediateResultsMapper == null) {
             intermediateResultsMapper = concreteElement -> {
                 List<Collection> collect = propertyNamesForGeneration.stream().map(propertyName -> {
-                    KeyPropertyMetadata<T, ?> propertyMetadata = keyPropertiesMetadata.stream().filter(prop -> prop.getPropertyName().equals(propertyName)).findFirst().orElse(null);
+                    KeyPropertyMetadata<T, ?> propertyMetadata = getKeyPropertyMetadataBy(propertyName);
                     Collection value = (Collection) propertyMetadata.getValueExtractor().apply(concreteElement);
                     return value;
                 }).collect(Collectors.toList());
-                List<List<Object>> productForGeneration = product(collect);
-                Object result = productForGeneration.stream()
-                        .flatMap(singleCombination ->
-                                toList(zip(keyPropertiesMetadata.stream()
-                                        .filter(KeyPropertyMetadata::isCollection)
-                                        .map(KeyPropertyMetadata::getPropertyName)
-                                        .collect(Collectors.toList()), singleCombination)).stream()
-                                        .flatMap(pair ->
-                                                ((Collection) pair.getRight()).stream()
-                                                        .map(e -> {
-                                                            Map<String, Object> map = keyPropertiesMetadata.stream()
-                                                                    .filter(keyProperty -> !keyProperty.isCollection())
-                                                                    .collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName,
-                                                                            keyProperty -> keyProperty.getValueExtractor().apply(concreteElement)));
-                                                            map.put(pair.getLeft(), e);
-                                                            return new ElementAbstraction(map);
-                                                        })))
-                        .collect(Collectors.toList());
-                return (List<ElementAbstraction>) result;
+                List<List<Object>> productForGeneration = productWithLists(collect);
+
+                // productForGeneration[0] = (PX,A)
+                List<ElementAbstraction> result = productForGeneration.stream()
+                        .map(this::namedValues)
+                        .map(map -> {
+                            List<Object> values = keyPropertiesMetadata.stream().filter(prop -> !prop.isCollection)
+                                    .map(KeyPropertyMetadata::getValueExtractor)
+                                    .map(extractor -> extractor.apply(concreteElement))
+                                    .collect(Collectors.toList());
+                            List<String> names = keyPropertiesMetadata.stream()
+                                    .filter(p -> !p.isCollection())
+                                    .map(KeyPropertyMetadata::getPropertyName)
+                                    .collect(Collectors.toList());
+                            zip(names, values).forEach(pair -> map.put(pair.getLeft(), pair.getRight()));
+                            return new ElementAbstraction(map);
+                        }).collect(Collectors.toList());
+                return result;
             };
         } else if (intermediateResultsMapper == null && intermediateResultMapper == null) {
             intermediateResultMapper = concreteElement -> {
@@ -162,6 +184,19 @@ public final class ElementGeneratorBuilder<T> {
             };
         }
         return new ElementGenerator<>(this);
+    }
+
+    private KeyPropertyMetadata<T, ?> getKeyPropertyMetadataBy(String propertyName) {
+        return keyPropertiesMetadata.stream().filter(prop -> prop.getPropertyName().equals(propertyName)).findFirst().orElse(null);
+    }
+
+    private Map<String, Object> namedValues(List<Object> singleCombination) {
+        List<Pair<String, Object>> zipped = toList(zip(keyPropertiesMetadata.stream()
+                .filter(KeyPropertyMetadata::isCollection)
+                .map(KeyPropertyMetadata::getPropertyName)
+                .collect(Collectors.toList()), singleCombination));
+        Map<String, Object> map = zipped.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+        return map;
     }
 
     public static final class ElementGenerator<T> {
@@ -222,10 +257,11 @@ public final class ElementGeneratorBuilder<T> {
             if (merged == MergeType.MERGED && groupingKey != null) {
                 Map<?, List<T>> groupedGeneratedMissingConcreteElements =
                         generatedMissingConcreteElements.stream().collect(Collectors.groupingBy(groupingKey));
-                groupedGeneratedMissingConcreteElements.entrySet().forEach(this::reduce);
+                HashMap<?, List<T>> reducedMap = new HashMap<>(groupedGeneratedMissingConcreteElements);
+                reducedMap.entrySet().forEach(this::reduce);
 
                 // finish: flatten the resultl
-                generatedMissingConcreteElements = groupedGeneratedMissingConcreteElements.values().stream()
+                generatedMissingConcreteElements = reducedMap.values().stream()
                         .map(r -> r.get(0))
                         .collect(Collectors.toSet());
             }

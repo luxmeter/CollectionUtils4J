@@ -1,7 +1,7 @@
 package luxmeter.receips.elementgenerator;
 
 import luxmeter.collectionutils.CollectionUtils;
-import luxmeter.receips.elementgenerator.ManufactureBuilder.Manufacture;
+import luxmeter.receips.elementgenerator.ElementGeneratorBuilder.ElementGenerator;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
@@ -12,14 +12,14 @@ import java.util.stream.Collectors;
 
 import static luxmeter.collectionutils.CollectionUtils.chain;
 import static luxmeter.collectionutils.CollectionUtils.println;
-import static luxmeter.receips.elementgenerator.ManufactureBuilder.MergeType.MERGED;
-import static luxmeter.receips.elementgenerator.ManufactureTest.Product.PX;
-import static luxmeter.receips.elementgenerator.ManufactureTest.Product.TX;
+import static luxmeter.receips.elementgenerator.MergeType.MERGED;
+import static luxmeter.receips.elementgenerator.ElementGeneratorTest.Product.PX;
+import static luxmeter.receips.elementgenerator.ElementGeneratorTest.Product.TX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 
-public class ManufactureTest {
+public class ElementGeneratorTest {
     public void shouldGenerateMissingCharges() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
@@ -28,10 +28,14 @@ public class ManufactureTest {
         List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
         List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(chargeCodes, allProducts);
         // goal -> abstraction of the current collection (type A)
-        List<RateKey> allRatesKeys = chargeCodePerProduct.stream().map(pair -> new RateKey(pair.getLeft(), pair.getRight())).collect(Collectors.toList());
+        List<RateKey> allRatesKeys = chargeCodePerProduct.stream()
+                .map(pair -> new RateKey(pair.getLeft(), pair.getRight()))
+                .collect(Collectors.toList());
 
         // map current collection (type T) to the abstraction (type A)
-        List<RateKey> existingRateKeys = rates.stream().flatMap(r -> r.getProducts().stream().map(p -> new RateKey(r.getChargeCode(), p))).collect(Collectors.toList());
+        List<RateKey> existingRateKeys = rates.stream()
+                .flatMap(r -> r.getProducts().stream().map(p -> new RateKey(r.getChargeCode(), p)))
+                .collect(Collectors.toList());
 
         // subtract from the goal the existing elements to determine the missing elements
         List<RateKey> missingRateKeys = CollectionUtils.removeAll(allRatesKeys, existingRateKeys);
@@ -40,8 +44,11 @@ public class ManufactureTest {
         System.out.println();
 
         // revert the abstract -> generate concrete elements
-        Function<RateKey, Rate> inverseAbstractionMapper = rateKey -> new Rate(rateKey.getChargeCode(), EnumSet.of(rateKey.getProduct()));
-        List<Rate> generatedMissingRateKeys = missingRateKeys.stream().map(inverseAbstractionMapper).collect(Collectors.toList());
+        Function<RateKey, Rate> inverseAbstractionMapper =
+                rateKey -> new Rate(rateKey.getChargeCode(), EnumSet.of(rateKey.getProduct()));
+        List<Rate> generatedMissingRateKeys = missingRateKeys.stream()
+                .map(inverseAbstractionMapper)
+                .collect(Collectors.toList());
         println(generatedMissingRateKeys);
         System.out.println();
 
@@ -53,7 +60,8 @@ public class ManufactureTest {
 
         // grouping key
         Function<Rate, String> groupingKey = Rate::getChargeCode;
-        Map<String, List<Rate>> groupedGeneratedMissingRates = generatedMissingRateKeys.stream().collect(Collectors.groupingBy(groupingKey));
+        Map<String, List<Rate>> groupedGeneratedMissingRates =
+                generatedMissingRateKeys.stream().collect(Collectors.groupingBy(groupingKey));
 
         // and reduce -> merge
         BinaryOperator<Rate> reducer = (a, b) -> new Rate(a.getChargeCode(), chain(a.getProducts(), b.getProducts()));
@@ -64,7 +72,8 @@ public class ManufactureTest {
         });
 
         // finish: flatten the result
-        List<Rate> generatedMissingRates = groupedGeneratedMissingRates.values().stream().map(r -> r.get(0)).collect(Collectors.toList());
+        List<Rate> generatedMissingRates = groupedGeneratedMissingRates.values().stream()
+                .map(r -> r.get(0)).collect(Collectors.toList());
         println(generatedMissingRates);
         System.out.println();
     }
@@ -75,16 +84,16 @@ public class ManufactureTest {
         Set<Product> allProducts = EnumSet.allOf(Product.class);
         List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
 
-        ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
-        manufactureBuilder
+        ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(
                         key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))));
 
-        Manufacture<Rate> manufacture = manufactureBuilder.build();
-        Set<Rate> generatedMissingRates = manufacture.generateMissingElements();
+        ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
+        Set<Rate> generatedMissingRates = elementGenerator.generateMissingElements();
 
         assertThat(generatedMissingRates, hasSize(3));
         assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
@@ -99,20 +108,20 @@ public class ManufactureTest {
         Set<Product> allProducts = EnumSet.allOf(Product.class);
 
         // what do i expect?
-        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
-        List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(chargeCodes, allProducts);
+        List<String> allChargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
 
-        ManufactureBuilder<Rate> manufactureBuilder = ManufactureBuilder.create();
-        manufactureBuilder
+        ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
                 .withExistingElements(rates)
-                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
-                .withElementConstructor(key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))))
+                .withElementConstructor(key ->
+                        new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))))
                 .withReducer(Rate::getChargeCode,
                         (a, b) -> new Rate(a.getChargeCode(), chain(a.getProducts(), b.getProducts())));
 
-        Manufacture<Rate> manufacture = manufactureBuilder.build();
-        Set<Rate> generatedMissingRates = manufacture.generateMissingElements(MERGED);
+        ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
+        Set<Rate> generatedMissingRates = elementGenerator.generateMissingElements(MERGED);
 
         assertThat(generatedMissingRates, hasSize(2));
         assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),

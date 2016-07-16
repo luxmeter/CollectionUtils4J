@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static luxmeter.collectionutils.CollectionUtils.*;
 import static org.hamcrest.Matchers.*;
@@ -30,7 +31,7 @@ public class CollectionUtilsTest {
     @Test
     public void shouldZipIterablesWithDifferentSizeAndDefaultValues() {
         String defaultValue = "_";
-        Iterable<Pair<String, Integer>> zipped = zip( Arrays.asList("a", "b"), Arrays.asList(1, 2, 3, 4),
+        Iterable<Pair<String, Integer>> zipped = zip(Arrays.asList("a", "b"), Arrays.asList(1, 2, 3, 4),
                 defaultValue, null);
         assertThat(zipped, contains(Pair.of("a", 1), Pair.of("b", 2), Pair.of(defaultValue, 3), Pair.of(defaultValue, 4)));
     }
@@ -41,6 +42,14 @@ public class CollectionUtilsTest {
         List<Integer> sequence = IntStream.range(0, values.size())
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         Iterable<Pair<Integer, String>> sequencedValues = zip(sequence, values); // [(0, "a"), (1, "b"), (2, "c")]
+        assertThat(sequencedValues, contains(
+                Pair.of(0, "a"), Pair.of(1, "b"), Pair.of(2, "c")));
+    }
+
+    @Test
+    public void shouldZipAsEnumerationStream() {
+        List<Pair<Integer, String>> sequencedValues =
+                zip(IntStream.range(0, 3).boxed(), Stream.of("a", "b", "c")).collect(Collectors.toList());
         assertThat(sequencedValues, contains(
                 Pair.of(0, "a"), Pair.of(1, "b"), Pair.of(2, "c")));
     }

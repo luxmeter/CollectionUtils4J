@@ -153,8 +153,8 @@ public final class CollectionUtils {
      * @param secondIterable second zip source
      * @return stream
      */
-    public static <K,V> Iterable<Pair<K, V>> zip(Stream<K> firstIterable, Stream<V> secondIterable) {
-        return zip(firstIterable::iterator, secondIterable::iterator);
+    public static <K,V> Stream<Pair<K, V>> zip(Stream<K> firstIterable, Stream<V> secondIterable) {
+        return toStream(zip(firstIterable::iterator, secondIterable::iterator));
     }
 
     /**
@@ -168,8 +168,8 @@ public final class CollectionUtils {
      * @param secondDefaultValue fallback value in case the second iterable is shorter than the other
      * @return stream
      */
-    public static <K,V> Iterable<Pair<K, V>> zip(Stream<K> firstIterable, Stream<V> secondIterable, K firstDefaultValue, V secondDefaultValue) {
-        return zip(firstIterable::iterator, secondIterable::iterator, firstDefaultValue, secondDefaultValue);
+    public static <K,V> Stream<Pair<K, V>> zip(Stream<K> firstIterable, Stream<V> secondIterable, K firstDefaultValue, V secondDefaultValue) {
+        return toStream(zip(firstIterable::iterator, secondIterable::iterator, firstDefaultValue, secondDefaultValue));
     }
 
     /**
@@ -372,7 +372,7 @@ public final class CollectionUtils {
 
     /**
      * Convenient method to print an iterable into System.out.
-     * @param iterable iterable to print
+     * * @param iterable iterable to print
      * @see CollectionUtils#println(Iterable, PrintStream)
      */
     public static void println(Iterable iterable) {

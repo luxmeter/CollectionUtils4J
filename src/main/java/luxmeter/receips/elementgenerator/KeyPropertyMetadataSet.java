@@ -5,6 +5,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,5 +74,9 @@ class KeyPropertyMetadataSet<T> {
                 .map(keyProperty -> keyProperty.getValuesRange().stream()
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList());
+    }
+
+    public Map<String, Function<Object, String>> getToStringMapper() {
+        return keyPropertiesMetadata.stream().collect(Collectors.toMap(KeyPropertyMetadata::getPropertyName, KeyPropertyMetadata::getToStringMapper));
     }
 }

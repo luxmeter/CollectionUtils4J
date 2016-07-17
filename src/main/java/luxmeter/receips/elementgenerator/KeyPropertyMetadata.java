@@ -7,7 +7,7 @@ import java.util.function.Function;
 final class KeyPropertyMetadata<T, R> {
     private final String propertyName;
     private final Function<T, ?> valueExtractor;
-    private final Function<?, String> toStringMapper;
+    private final Function<Object, String> toStringMapper;
     private final Collection<R> valuesRange;
     private final boolean isCollection;
 
@@ -34,21 +34,22 @@ final class KeyPropertyMetadata<T, R> {
     }
 
     public KeyPropertyMetadata(
-            String propertyName, SingleValueExtractor<T, R> valueExtractor, Collection<R> valuesRange) {
+            String propertyName, SingleValueExtractor<T, R> valueExtractor,
+            Collection<R> valuesRange, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
         this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
         this.valuesRange = valuesRange;
-        this.toStringMapper = Object::toString;
+        this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = false;
     }
 
     public <C extends Collection<R>> KeyPropertyMetadata(
             String propertyName, ValuesExtractor<T, R, C> valueExtractor,
-            Collection<R> valuesRange, boolean isCollection) {
+            Collection<R> valuesRange, boolean isCollection, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
         this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
         this.valuesRange = valuesRange;
-        this.toStringMapper = Object::toString;
+        this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = isCollection;
     }
 
@@ -64,7 +65,7 @@ final class KeyPropertyMetadata<T, R> {
         return valuesRange;
     }
 
-    public Function<?, String> getToStringMapper() {
+    public Function<Object, String> getToStringMapper() {
         return toStringMapper;
     }
 

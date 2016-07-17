@@ -30,7 +30,7 @@ public final class ElementGeneratorBuilder<T> {
     private Function<T, ElementAbstraction> createIntermediateResultMapper() {
         return concreteElement -> {
             Map<String, Object> keyValues = keyPropertyMetadataSet.getPropertyValues(concreteElement);
-            return new ElementAbstraction(concreteElement, keyValues);
+            return new ElementAbstraction(concreteElement, keyValues, keyPropertyMetadataSet.getToStringMapper());
         };
     }
 
@@ -46,7 +46,9 @@ public final class ElementGeneratorBuilder<T> {
                             singleCombination, KeyPropertyMetadata::isCollection))
                     .map(map -> {
                         map.putAll(keyPropertyMetadataSet.getPropertyValues(concreteElement, p -> !p.isCollection()));
-                        return new ElementAbstraction(map);
+                        ElementAbstraction elementAbstraction = new ElementAbstraction(
+                                concreteElement, map, keyPropertyMetadataSet.getToStringMapper());
+                        return elementAbstraction;
                     }).collect(Collectors.toList());
             return result;
         };
@@ -62,13 +64,33 @@ public final class ElementGeneratorBuilder<T> {
         List<List<Object>> productOfAllValues =
                 product((Collection[]) valueRanges.toArray(new List[valueRanges.size()]));
         List<Map<String, ?>> namedProductOfAllValues = attachNames(productOfAllValues);
-        return namedProductOfAllValues.stream().map(ElementAbstraction::new).collect(Collectors.toSet());
+        return namedProductOfAllValues.stream().map(map -> new ElementAbstraction(
+                null, map, keyPropertyMetadataSet.getToStringMapper())).collect(Collectors.toSet());
     }
 
     private List<Map<String, ?>> attachNames(List<List<Object>> productOfAllValues) {
         return productOfAllValues.stream()
                 .map(singleCombination -> keyPropertyMetadataSet.getPropertyValues(singleCombination))
                 .collect(Collectors.toList());
+    }
+
+    private void injectDependenciesIntoIntermediateResultMappers() {
+        if (intermediateResultMapper != null) {
+            final Function<T, ElementAbstraction> oldIntermediateResultMapper = intermediateResultMapper;
+            intermediateResultMapper = concreteElement -> {
+                ElementAbstraction e = oldIntermediateResultMapper.apply(concreteElement);
+                e.setToStringMapper(keyPropertyMetadataSet.getToStringMapper());
+                return e;
+            };
+        }
+        else if (intermediateResultsMapper != null) {
+            final Function<T, Collection<ElementAbstraction>> oldIntermediateResultsMapper = intermediateResultsMapper;
+            intermediateResultsMapper = concreteElement -> {
+                Collection<ElementAbstraction> result = oldIntermediateResultsMapper.apply(concreteElement);
+                result.forEach(e -> e.setToStringMapper(keyPropertyMetadataSet.getToStringMapper()));
+                return result;
+            };
+        }
     }
 
     public ElementGeneratorBuilder<T> withExistingElements(Collection<T> existingElements) {
@@ -88,12 +110,22 @@ public final class ElementGeneratorBuilder<T> {
     }
 
     public <R> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, SingleValueExtractor<T, R> propertyExtractor) {
-        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange));
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, null));
+        return this;
+    }
+
+    public <R> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, SingleValueExtractor<T, R> propertyExtractor, Function<R, String> toStringMapper) {
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, toStringMapper));
         return this;
     }
 
     public <R, C extends Collection<R>> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor) {
-        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, true));
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, true, null));
+        return this;
+    }
+
+    public <R, C extends Collection<R>> ElementGeneratorBuilder<T> withKeyProperty(String propertyName, Collection<R> valuesRange, ValuesExtractor<T, R, C> propertyExtractor, Function<R, String> toStringMapper) {
+        keyPropertyMetadataSet.add(new KeyPropertyMetadata<>(propertyName, propertyExtractor, valuesRange, true, toStringMapper));
         return this;
     }
 
@@ -114,6 +146,11 @@ public final class ElementGeneratorBuilder<T> {
                 intermediateResultMapper = createIntermediateResultMapper();
             }
         }
+        // inject into custom user provided mappers
+        else {
+            injectDependenciesIntoIntermediateResultMappers();
+        }
+
         return new ElementGenerator<>(this);
     }
 
@@ -150,7 +187,7 @@ public final class ElementGeneratorBuilder<T> {
                 this.intermediateResultsMapper = builder.intermediateResultsMapper;
             }
 
-            this.existingConcreteElements = new HashSet<T>(builder.existingElements);
+            this.existingConcreteElements = new HashSet<>(builder.existingElements);
             this.intermediateEndResult = new HashSet<>(builder.intermediateEndResult);
             this.elementConstructor = builder.elementConstructor;
             this.groupingKey = builder.groupingKey;

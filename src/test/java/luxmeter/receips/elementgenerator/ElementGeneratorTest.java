@@ -26,8 +26,8 @@ public class ElementGeneratorTest {
         Set<Product> allProducts = EnumSet.allOf(Product.class);
 
         // what do i expect?
-        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
-        List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(chargeCodes, allProducts);
+        List<String> allChargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+        List<Pair<String, Product>> chargeCodePerProduct = CollectionUtils.product(allChargeCodes, allProducts);
         // goal -> abstraction of the current collection (type A)
         List<RateKey> allRatesKeys = chargeCodePerProduct.stream()
                 .map(pair -> new RateKey(pair.getLeft(), pair.getRight()))
@@ -83,13 +83,13 @@ public class ElementGeneratorTest {
     public void shouldGenerateMissingSimpleRatesWtihoutCollectionProperties() {
         List<SimpleRate> rates = Arrays.asList(new SimpleRate("5500", PX, A), new SimpleRate("5510", PX, B));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
-        List<String> chargeCodes = rates.stream().map(SimpleRate::getChargeCode).collect(Collectors.toList());
+        List<String> allChargeCodes = rates.stream().map(SimpleRate::getChargeCode).collect(Collectors.toList());
         Set<Zone> allZones = EnumSet.allOf(Zone.class);
 
         ElementGeneratorBuilder<SimpleRate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(rates)
-                .withKeyProperty("chargeCode", chargeCodes, SimpleRate::getChargeCode)
+                .withKeyProperty("chargeCode", allChargeCodes, SimpleRate::getChargeCode)
                 .withKeyProperty("product", allProducts, SimpleRate::getProduct)
                 .withKeyProperty("zone", allZones, SimpleRate::getZone)
                 .withElementConstructor(
@@ -121,24 +121,24 @@ public class ElementGeneratorTest {
         // need to override standard behaviour
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", Collections.emptySet()));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
-        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+        List<String> allChargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
 
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(rates)
-                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(
                         key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))))
                 .withOverridenDefaults(OverridenDefaults.<Rate>create()
                         .setIntermediateResultsMapper(
                                 concreteElement -> {
-                                    Map<String, Object> map = new HashMap<>();
-                                    map.put("chargeCode", concreteElement.getChargeCode());
                                     Set<Product> products = (concreteElement.getProducts().isEmpty())
                                             ? allProducts
                                             : concreteElement.getProducts();
                                     return products.stream().map(p -> {
+                                        Map<String, Object> map = new HashMap<>();
+                                        map.put("chargeCode", concreteElement.getChargeCode());
                                         map.put("product", p);
                                         return new ElementAbstraction(concreteElement, map);
                                     }).collect(Collectors.toList());
@@ -155,15 +155,47 @@ public class ElementGeneratorTest {
     }
 
     @Test
+    public void shouldGenerateMissingRatesWithCustomToStringMapper() {
+        List<RateWithChargeCodeObject> rates = Arrays.asList(
+                new RateWithChargeCodeObject(new ChargeCode("name", "5500"), EnumSet.of(PX, TX)),
+                new RateWithChargeCodeObject(new ChargeCode("name", "5510"), EnumSet.of(PX)));
+        Set<Product> allProducts = EnumSet.allOf(Product.class);
+        List<ChargeCode> allChargeCodes = rates.stream().map(RateWithChargeCodeObject::getChargeCode).collect(Collectors.toList());
+
+        ElementGeneratorBuilder<RateWithChargeCodeObject> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
+                .withExistingElements(rates)
+                .withKeyProperty("chargeCode", allChargeCodes, RateWithChargeCodeObject::getChargeCode, ChargeCode::getCode)
+                .withKeyProperty("product", allProducts, RateWithChargeCodeObject::getProducts)
+                .withElementConstructor(
+                        key -> new RateWithChargeCodeObject(key.get("chargeCode"), Collections.singleton(key.get("product"))));
+
+        ElementGenerator<RateWithChargeCodeObject> elementGenerator = elementGeneratorBuilder.build();
+        Set<RateWithChargeCodeObject> generatedMissingRateWithChargeCodeObjects = elementGenerator.generateMissingElements();
+
+        assertThat(generatedMissingRateWithChargeCodeObjects, hasSize(3));
+        assertThat(generatedMissingRateWithChargeCodeObjects.stream().map(RateWithChargeCodeObject::toString).collect(Collectors.toList()),
+                // default chargeCode.toString returns name of the chargeCode
+                containsInAnyOrder(
+                        "Rate{chargeCode='name', products=[XX]}",
+                        "Rate{chargeCode='name', products=[XX]}",
+                        "Rate{chargeCode='name', products=[TX]}"));
+        assertThat(generatedMissingRateWithChargeCodeObjects.stream()
+                .map(RateWithChargeCodeObject::getChargeCode)
+                .map(ChargeCode::getCode).collect(Collectors.toList()),
+                containsInAnyOrder("5500", "5510", "5510"));
+    }
+
+    @Test
     public void shouldGenerateMissingRates() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
-        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+        List<String> allChargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
 
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(rates)
-                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withElementConstructor(
                         key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))));
@@ -362,6 +394,55 @@ public class ElementGeneratorTest {
                     "chargeCode='" + chargeCode + '\'' +
                     ", products=" + product +
                     ", zones=" +  zone +
+                    '}';
+        }
+    }
+
+    public static final class ChargeCode {
+        private final String name;
+        private final String code;
+
+        public ChargeCode(String name, String code) {
+            this.name = name;
+            this.code = code;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    public static final class RateWithChargeCodeObject {
+        private ChargeCode chargeCode;
+        private Set<Product> products;
+
+        public RateWithChargeCodeObject(ChargeCode chargeCode, Set<Product> products) {
+            this.products = products;
+            this.chargeCode = chargeCode;
+        }
+
+        public ChargeCode getChargeCode() {
+            return chargeCode;
+        }
+
+        public Set<Product> getProducts() {
+            return products;
+        }
+
+        @Override
+        public String toString() {
+            return "Rate{" +
+                    "chargeCode='" + chargeCode.getName() + '\'' +
+                    ", products=" + products +
                     '}';
         }
     }

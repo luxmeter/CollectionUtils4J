@@ -121,7 +121,7 @@ public final class ElementGeneratorBuilder<T> {
         private final Function<T, ?> groupingKey;
         private final BinaryOperator<T> reducer;
 
-        public ElementGenerator(ElementGeneratorBuilder<T> builder) {
+        private ElementGenerator(ElementGeneratorBuilder<T> builder) {
             Objects.requireNonNull(builder.existingElements);
             Objects.requireNonNull(builder.intermediateEndResult);
             Objects.requireNonNull(builder.elementConstructor);

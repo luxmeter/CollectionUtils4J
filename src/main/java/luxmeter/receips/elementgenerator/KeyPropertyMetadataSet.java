@@ -12,9 +12,25 @@ import java.util.stream.Stream;
 import static luxmeter.collectionutils.CollectionUtils.zip;
 
 class KeyPropertyMetadataSet<T> {
+    public static final String BLANK_STRING = "";
     private List<KeyPropertyMetadata<T, ?>> keyPropertiesMetadata = new ArrayList<>();
 
+    private void validateKeyProperty(KeyPropertyMetadata<T, ?> keyPropertyMetadata, boolean propertyNameIsEmpty) {
+        if (propertyNameIsEmpty) {
+            throw new IllegalArgumentException("Property name is not allowed to be null or blank");
+        }
+        boolean propertyExistsAlready = keyPropertiesMetadata.stream()
+                .anyMatch(k -> k.getPropertyName().equals(keyPropertyMetadata.getPropertyName()));
+        if (propertyExistsAlready) {
+            throw new IllegalArgumentException(
+                    String.format("Key property '%s' already defined", keyPropertyMetadata.getPropertyName()));
+        }
+    }
+
     public void add(KeyPropertyMetadata<T, ?> keyPropertyMetadata) {
+        boolean propertyNameIsEmpty = keyPropertyMetadata.getPropertyName() == null
+                || keyPropertyMetadata.getPropertyName().trim().equals(BLANK_STRING);
+        validateKeyProperty(keyPropertyMetadata, propertyNameIsEmpty);
         keyPropertiesMetadata.add(keyPropertyMetadata);
     }
 

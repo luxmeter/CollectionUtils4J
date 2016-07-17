@@ -97,6 +97,12 @@ public final class ElementGeneratorBuilder<T> {
         return this;
     }
 
+    public ElementGeneratorBuilder<T> withOverridenDefaults(OverridenDefaults<T> overridenDefaults) {
+        this.intermediateResultMapper = overridenDefaults.getIntermediateResultMapper();
+        this.intermediateResultsMapper = overridenDefaults.getIntermediateResultsMapper();
+        return this;
+    }
+
     @SuppressWarnings("unchecked")
     public ElementGenerator<T> build() {
         intermediateEndResult = createIntermediateEndResult();

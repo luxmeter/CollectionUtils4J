@@ -116,6 +116,45 @@ public class ElementGeneratorTest {
     }
 
     @Test
+    public void shouldGenerateMissingRatesWithOverridenDefaults() {
+        // normally the generator doesn't accept key properties to be empty -> here 5510.products
+        // need to override standard behaviour
+        List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", Collections.emptySet()));
+        Set<Product> allProducts = EnumSet.allOf(Product.class);
+        List<String> chargeCodes = rates.stream().map(Rate::getChargeCode).collect(Collectors.toList());
+
+        ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        elementGeneratorBuilder
+                .withExistingElements(rates)
+                .withKeyProperty("chargeCode", chargeCodes, Rate::getChargeCode)
+                .withKeyProperty("product", allProducts, Rate::getProducts)
+                .withElementConstructor(
+                        key -> new Rate(key.get("chargeCode"), Collections.singleton(key.get("product"))))
+                .withOverridenDefaults(OverridenDefaults.<Rate>create()
+                        .setIntermediateResultsMapper(
+                                concreteElement -> {
+                                    Map<String, Object> map = new HashMap<>();
+                                    map.put("chargeCode", concreteElement.getChargeCode());
+                                    Set<Product> products = (concreteElement.getProducts().isEmpty())
+                                            ? allProducts
+                                            : concreteElement.getProducts();
+                                    return products.stream().map(p -> {
+                                        map.put("product", p);
+                                        return new ElementAbstraction(concreteElement, map);
+                                    }).collect(Collectors.toList());
+                                }
+                        ));
+
+        ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
+        Set<Rate> generatedMissingRates = elementGenerator.generateMissingElements();
+
+        assertThat(generatedMissingRates, hasSize(1));
+        assertThat(generatedMissingRates.stream().map(Rate::toString).collect(Collectors.toList()),
+                containsInAnyOrder(
+                        "Rate{chargeCode='5500', products=[XX], zones=[]}"));
+    }
+
+    @Test
     public void shouldGenerateMissingRates() {
         List<Rate> rates = Arrays.asList(new Rate("5500", EnumSet.of(PX, TX)), new Rate("5510", EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);

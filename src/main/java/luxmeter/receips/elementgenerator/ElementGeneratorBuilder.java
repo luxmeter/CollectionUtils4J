@@ -16,8 +16,7 @@ public final class ElementGeneratorBuilder<T> {
 
     private Function<T, ElementAbstraction> intermediateResultMapper;
     private Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
-    private Function<T, ?> groupingKey;
-    private BinaryOperator<T> reducer;
+    private List<Reducer<T>> reducers = new ArrayList<>();
 
 
     public static <T,A > ElementGeneratorBuilder<T> create() {
@@ -84,9 +83,19 @@ public final class ElementGeneratorBuilder<T> {
         return this;
     }
 
-    public ElementGeneratorBuilder<T> withReducer(Function<T, ?> groupingKey, BinaryOperator<T> reducer) {
-        this.groupingKey = groupingKey;
-        this.reducer = reducer;
+    public ElementGeneratorBuilder<T> withReducer(Function<T, ?> groupingKey, BinaryOperator<T> reducingFunction) {
+        reducers.clear();
+        reducers.add(Reducer.create(groupingKey, reducingFunction));
+        return this;
+    }
+
+    @SafeVarargs
+    public final ElementGeneratorBuilder<T> withReducers(Reducer<T>... reducers) {
+        Objects.nonNull(reducers);
+        this.reducers.clear();
+        for (Reducer<T> reducer : reducers) {
+            this.reducers.add(reducer);
+        }
         return this;
     }
 
@@ -170,11 +179,7 @@ public final class ElementGeneratorBuilder<T> {
         return intermediateResultsMapper;
     }
 
-    Function<T, ?> getGroupingKey() {
-        return groupingKey;
-    }
-
-    BinaryOperator<T> getReducer() {
-        return reducer;
+    List<Reducer<T>> getReducers() {
+        return reducers;
     }
 }

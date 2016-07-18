@@ -17,8 +17,7 @@ public final class ElementGenerator<T> {
 
     private final Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
     private final Function<T, ElementAbstraction> intermediateResultMapper;
-    private final Function<T, ?> groupingKey;
-    private final BinaryOperator<T> reducer;
+    private final List<Reducer<T>> reducers;
 
     ElementGenerator(ElementGeneratorBuilder<T> builder) {
         Objects.requireNonNull(builder.getExistingElements());
@@ -28,11 +27,6 @@ public final class ElementGenerator<T> {
         if ((builder.getIntermediateResultMapper() != null) == (builder.getIntermediateResultsMapper() != null)) {
             throw new IllegalArgumentException(
                     "Either an intermediateResultMapper or intermediateResult[s]Mapper must be passed in.");
-        }
-
-        if (builder.getGroupingKey() != null || builder.getReducer() != null) {
-            Objects.requireNonNull(builder.getGroupingKey());
-            Objects.requireNonNull(builder.getReducer());
         }
 
         this.intermediateResultMapper = builder.getIntermediateResultMapper();
@@ -45,8 +39,7 @@ public final class ElementGenerator<T> {
         this.existingConcreteElements = new HashSet<>(builder.getExistingElements());
         this.intermediateEndResult = new HashSet<>(builder.getIntermediateEndResult());
         this.elementConstructor = builder.getElementConstructor();
-        this.groupingKey = builder.getGroupingKey();
-        this.reducer = builder.getReducer();
+        this.reducers = new ArrayList<>(builder.getReducers());
     }
 
     public Set<T> generateMissingElements() {
@@ -64,24 +57,35 @@ public final class ElementGenerator<T> {
                 .map(elementConstructor)
                 .collect(Collectors.toSet());
 
-        if (merged == MergeType.MERGED && groupingKey != null) {
-            Map<?, List<T>> groupedGeneratedMissingConcreteElements =
-                    generatedMissingConcreteElements.stream().collect(Collectors.groupingBy(groupingKey));
-            HashMap<?, List<T>> reducedMap = new HashMap<>(groupedGeneratedMissingConcreteElements);
-            reducedMap.entrySet().forEach(this::reduce);
-
-            // finish: flatten the resultl
-            generatedMissingConcreteElements = reducedMap.values().stream()
-                    .map(r -> r.get(0))
-                    .collect(Collectors.toSet());
+        if (merged == MergeType.MERGED && !reducers.isEmpty()) {
+            generatedMissingConcreteElements = reduce(generatedMissingConcreteElements, reducers);
         }
 
         return generatedMissingConcreteElements;
     }
 
-    private void reduce(Map.Entry<?, List<T>> entry) {
-        List<T> reducedList = Collections.singletonList(entry.getValue().stream()
-                .collect(Collectors.reducing(entry.getValue().get(0), reducer)));
-        entry.setValue(reducedList);
+    @SuppressWarnings("unchecked")
+    public Set<T> reduce(Set<T> generatedMissingConcreteElements, List<Reducer<T>> reducers) {
+        if (reducers.isEmpty()) {
+            return generatedMissingConcreteElements;
+        }
+        Reducer reducer = reducers.remove(0);
+        Map<Object, List<T>> groupedGeneratedMissingConcreteElements =
+                (Map<Object, List<T>>) generatedMissingConcreteElements.stream()
+                        .collect(Collectors.groupingBy(reducer.getGroupingKey()));
+        Map<Object, List<T>> reducedMap = new HashMap<>(groupedGeneratedMissingConcreteElements);
+        reducedMap.entrySet().forEach(entry ->
+                entry.setValue(reduced(entry.getValue(), reducer.getReducingFunction())));
+        // finish: flatten the resultl
+        generatedMissingConcreteElements = reducedMap.values().stream()
+                .map(r -> r.get(0))
+                .collect(Collectors.toSet());
+        return reduce(generatedMissingConcreteElements, reducers);
+    }
+
+    private List<T> reduced(List<T> list, BinaryOperator<T> reducer) {
+        List<T> reducedList = Collections.singletonList(list.stream()
+                .collect(Collectors.reducing(list.get(0), reducer)));
+        return reducedList;
     }
 }

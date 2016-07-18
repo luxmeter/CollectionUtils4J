@@ -1,5 +1,6 @@
 package luxmeter.receips.elementgenerator;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -15,7 +16,9 @@ public final class ElementAbstraction {
                        Map<String, Function<Object, String>> toStringMapper) {
         this.sourceElement = sourceElement;
         this.keyPropertyValues = keyPropertyValues;
-        setToStringMapper(toStringMapper);
+        keyPropertyValuesAsString = keyPropertyValues.entrySet().stream()
+                .map(entry -> toStringMapper.getOrDefault(entry.getKey(), Objects::toString).apply(entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -40,13 +43,7 @@ public final class ElementAbstraction {
         return (R) keyPropertyValues.get(propertyName);
     }
 
-    /**
-     * Custom toString mappers for each property injected by the ElementGeneratorBuilder.
-     * @param toStringMapper Custom toString mappers for each property
-     */
-    void setToStringMapper(Map<String, Function<Object, String>> toStringMapper) {
-        keyPropertyValuesAsString = keyPropertyValues.entrySet().stream()
-                .map(entry -> toStringMapper.getOrDefault(entry.getKey(), Objects::toString).apply(entry.getValue()))
-                .collect(Collectors.toList());
+    public Map<String, Object> getProperties() {
+        return new HashMap<>(keyPropertyValues);
     }
 }

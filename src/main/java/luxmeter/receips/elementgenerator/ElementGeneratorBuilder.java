@@ -78,7 +78,7 @@ public final class ElementGeneratorBuilder<T> {
         return this;
     }
 
-    public ElementGeneratorBuilder<T> withElementConstructor(Function<ElementAbstraction, T> elementConstructor) {
+    public ElementGeneratorBuilder<T> withElementFactory(Function<ElementAbstraction, T> elementConstructor) {
         this.elementConstructor = elementConstructor;
         return this;
     }

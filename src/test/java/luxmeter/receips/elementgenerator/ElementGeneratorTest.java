@@ -91,8 +91,9 @@ public class ElementGeneratorTest {
                 .withKeyProperty("chargeCode", allChargeCodes, SimpleRate::getChargeCode)
                 .withKeyProperty("product", allProducts, SimpleRate::getProduct)
                 .withKeyProperty("zone", allZones, SimpleRate::getZone)
-                .withElementConstructor(
-                        propMap -> new SimpleRate(propMap.get("chargeCode"), propMap.get("product"), propMap.get("zone")));
+                .withElementFactory(abstractElement ->
+                        new SimpleRate(abstractElement.get("chargeCode"), abstractElement.get("product"),
+                                abstractElement.get("zone")));
 
         ElementGenerator<SimpleRate> elementGenerator = elementGeneratorBuilder.build();
         Set<SimpleRate> generatedMissingSimpleRates = elementGenerator.generateMissingElements();
@@ -127,8 +128,8 @@ public class ElementGeneratorTest {
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
-                .withElementConstructor(
-                        propMap -> new Rate(propMap.get("chargeCode"), Collections.singleton(propMap.get("product"))))
+                .withElementFactory(abstractElement -> new Rate(abstractElement.get("chargeCode"),
+                        Collections.singleton(abstractElement.get("product"))))
                 .withOverridenDefaults(OverridenDefaults.<Rate>create()
                         .setIntermediateResultsMapper(
                                 concreteElement -> {
@@ -159,21 +160,26 @@ public class ElementGeneratorTest {
                 new RateWithChargeCodeObject(new ChargeCode("name", "5500"), EnumSet.of(PX, TX)),
                 new RateWithChargeCodeObject(new ChargeCode("name", "5510"), EnumSet.of(PX)));
         Set<Product> allProducts = EnumSet.allOf(Product.class);
-        List<ChargeCode> allChargeCodes = rates.stream().map(RateWithChargeCodeObject::getChargeCode).collect(Collectors.toList());
+        List<ChargeCode> allChargeCodes = rates.stream()
+                .map(RateWithChargeCodeObject::getChargeCode)
+                .collect(Collectors.toList());
 
         ElementGeneratorBuilder<RateWithChargeCodeObject> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", allChargeCodes, RateWithChargeCodeObject::getChargeCode, ChargeCode::getCode)
                 .withKeyProperty("product", allProducts, RateWithChargeCodeObject::getProducts)
-                .withElementConstructor(
-                        propMap -> new RateWithChargeCodeObject(propMap.get("chargeCode"), Collections.singleton(propMap.get("product"))));
+                .withElementFactory(
+                        abstractElement -> new RateWithChargeCodeObject(
+                                abstractElement.get("chargeCode"),
+                                Collections.singleton(abstractElement.get("product"))));
 
         ElementGenerator<RateWithChargeCodeObject> elementGenerator = elementGeneratorBuilder.build();
         Set<RateWithChargeCodeObject> generatedMissingRateWithChargeCodeObjects = elementGenerator.generateMissingElements();
 
         assertThat(generatedMissingRateWithChargeCodeObjects, hasSize(3));
-        assertThat(generatedMissingRateWithChargeCodeObjects.stream().map(RateWithChargeCodeObject::toString).collect(Collectors.toList()),
+        assertThat(generatedMissingRateWithChargeCodeObjects.stream()
+                .map(RateWithChargeCodeObject::toString).collect(Collectors.toList()),
                 // default chargeCode.toString returns name of the chargeCode
                 containsInAnyOrder(
                         "Rate{chargeCode='name', products=[XX]}",
@@ -196,8 +202,9 @@ public class ElementGeneratorTest {
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
-                .withElementConstructor(
-                        propMap -> new Rate(propMap.get("chargeCode"), Collections.singleton(propMap.get("product"))));
+                .withElementFactory(
+                        abstractElement -> new Rate(abstractElement.get("chargeCode"),
+                                Collections.singleton(abstractElement.get("product"))));
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
         Set<Rate> generatedMissingRates = elementGenerator.generateMissingElements();
@@ -223,8 +230,9 @@ public class ElementGeneratorTest {
                 .withExistingElements(rates)
                 .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
-                .withElementConstructor(propMap ->
-                        new Rate(propMap.get("chargeCode"), Collections.singleton(propMap.get("product"))))
+                .withElementFactory(abstractElement ->
+                        new Rate(abstractElement.get("chargeCode"),
+                                Collections.singleton(abstractElement.get("product"))))
                 .withReducer(Rate::getChargeCode,
                         (a, b) -> new Rate(a.getChargeCode(), chain(a.getProducts(), b.getProducts())));
 
@@ -256,9 +264,9 @@ public class ElementGeneratorTest {
                 .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withKeyProperty("zone", allZones, Rate::getZones)
-                .withElementConstructor(propMap -> new Rate(propMap.get("chargeCode"),
-                        Collections.singleton(propMap.get("product")),
-                        Collections.singleton(propMap.get("zone"))));
+                .withElementFactory(abstractElement -> new Rate(abstractElement.get("chargeCode"),
+                        Collections.singleton(abstractElement.get("product")),
+                        Collections.singleton(abstractElement.get("zone"))));
 
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
@@ -294,9 +302,9 @@ public class ElementGeneratorTest {
                 .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode)
                 .withKeyProperty("product", allProducts, Rate::getProducts)
                 .withKeyProperty("zone", allZones, Rate::getZones)
-                .withElementConstructor(propMap -> new Rate(propMap.get("chargeCode"),
-                        Collections.singleton(propMap.get("product")),
-                        Collections.singleton(propMap.get("zone"))))
+                .withElementFactory(abstractElement -> new Rate(abstractElement.get("chargeCode"),
+                        Collections.singleton(abstractElement.get("product")),
+                        Collections.singleton(abstractElement.get("zone"))))
                 .withReducers(
                         Reducer.create(rate -> {
                                     List<Product> products = rate.getProducts().stream().sorted(

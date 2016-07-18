@@ -154,80 +154,35 @@ public final class ElementGeneratorBuilder<T> {
         return new ElementGenerator<>(this);
     }
 
-    public static final class ElementGenerator<T> {
-        private final Set<T> existingConcreteElements;
-        private final Set<ElementAbstraction> intermediateEndResult; // goal
-        private final Function<ElementAbstraction, T> elementConstructor;
+    KeyPropertyMetadataSet<T> getKeyPropertyMetadataSet() {
+        return keyPropertyMetadataSet;
+    }
 
-        private final Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
-        private final Function<T, ElementAbstraction> intermediateResultMapper;
-        private final Function<T, ?> groupingKey;
-        private final BinaryOperator<T> reducer;
+    Collection<T> getExistingElements() {
+        return existingElements;
+    }
 
-        private ElementGenerator(ElementGeneratorBuilder<T> builder) {
-            Objects.requireNonNull(builder.existingElements);
-            Objects.requireNonNull(builder.intermediateEndResult);
-            Objects.requireNonNull(builder.elementConstructor);
+    Collection<ElementAbstraction> getIntermediateEndResult() {
+        return intermediateEndResult;
+    }
 
-            if ((builder.intermediateResultMapper != null) == (builder.intermediateResultsMapper != null)) {
-                throw new IllegalArgumentException(
-                        "Either an intermediateResultMapper or intermediateResult[s]Mapper must be passed in.");
-            }
+    Function<ElementAbstraction, T> getElementConstructor() {
+        return elementConstructor;
+    }
 
-            if (builder.groupingKey != null || builder.reducer != null) {
-                Objects.requireNonNull(builder.groupingKey);
-                Objects.requireNonNull(builder.reducer);
-            }
+    Function<T, ElementAbstraction> getIntermediateResultMapper() {
+        return intermediateResultMapper;
+    }
 
-            this.intermediateResultMapper = builder.intermediateResultMapper;
-            if (intermediateResultMapper != null) {
-                this.intermediateResultsMapper = e -> Collections.singletonList(intermediateResultMapper.apply(e));
-            }
-            else {
-                this.intermediateResultsMapper = builder.intermediateResultsMapper;
-            }
+    Function<T, Collection<ElementAbstraction>> getIntermediateResultsMapper() {
+        return intermediateResultsMapper;
+    }
 
-            this.existingConcreteElements = new HashSet<>(builder.existingElements);
-            this.intermediateEndResult = new HashSet<>(builder.intermediateEndResult);
-            this.elementConstructor = builder.elementConstructor;
-            this.groupingKey = builder.groupingKey;
-            this.reducer = builder.reducer;
-        }
+    Function<T, ?> getGroupingKey() {
+        return groupingKey;
+    }
 
-        public Set<T> generateMissingElements() {
-            return generateMissingElements(MergeType.NOT_MERGED);
-        }
-
-        public Set<T> generateMissingElements(MergeType merged) {
-            Set<ElementAbstraction> existingAbstractElements = existingConcreteElements.stream()
-                    .flatMap(e->intermediateResultsMapper.apply(e).stream())
-                    .collect(Collectors.toSet());
-
-            Set<ElementAbstraction> missingAbstractElements = removeAll(intermediateEndResult, existingAbstractElements);
-
-            Set<T> generatedMissingConcreteElements = missingAbstractElements.stream()
-                    .map(elementConstructor)
-                    .collect(Collectors.toSet());
-
-            if (merged == MergeType.MERGED && groupingKey != null) {
-                Map<?, List<T>> groupedGeneratedMissingConcreteElements =
-                        generatedMissingConcreteElements.stream().collect(Collectors.groupingBy(groupingKey));
-                HashMap<?, List<T>> reducedMap = new HashMap<>(groupedGeneratedMissingConcreteElements);
-                reducedMap.entrySet().forEach(this::reduce);
-
-                // finish: flatten the resultl
-                generatedMissingConcreteElements = reducedMap.values().stream()
-                        .map(r -> r.get(0))
-                        .collect(Collectors.toSet());
-            }
-
-            return generatedMissingConcreteElements;
-        }
-
-        private void reduce(Map.Entry<?, List<T>> entry) {
-            List<T> reducedList = Collections.singletonList(entry.getValue().stream()
-                    .collect(Collectors.reducing(entry.getValue().get(0), reducer)));
-            entry.setValue(reducedList);
-        }
+    BinaryOperator<T> getReducer() {
+        return reducer;
     }
 }

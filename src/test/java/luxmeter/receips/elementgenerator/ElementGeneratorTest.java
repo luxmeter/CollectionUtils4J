@@ -1,7 +1,6 @@
 package luxmeter.receips.elementgenerator;
 
 import luxmeter.collectionutils.CollectionUtils;
-import luxmeter.receips.elementgenerator.ElementGeneratorBuilder.ElementGenerator;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 

@@ -139,7 +139,7 @@ public class ElementGeneratorTest {
                                         Map<String, Object> map = new HashMap<>();
                                         map.put("chargeCode", concreteElement.getChargeCode());
                                         map.put("product", p);
-                                        return new ElementAbstraction(concreteElement, map);
+                                        return map;
                                     }).collect(Collectors.toList());
                                 }
                         ));

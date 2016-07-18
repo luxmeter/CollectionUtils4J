@@ -1,16 +1,17 @@
 package luxmeter.receips.elementgenerator;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
  *
  */
 public final class OverridenDefaults<T> {
-    private Function<T, ElementAbstraction> intermediateResultMapper;
-    private Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
+    private Function<T, Map<String, Object>> intermediateResultMapper;
+    private Function<T, Collection<Map<String, Object>>> intermediateResultsMapper;
 
-    private void checkValidity(Function<T, ElementAbstraction> intermediateResultMapper) {
+    private void checkValidity() {
         if (intermediateResultMapper != null
                 && intermediateResultsMapper != null) {
             throw new IllegalArgumentException(
@@ -25,23 +26,23 @@ public final class OverridenDefaults<T> {
         return new OverridenDefaults<>();
     }
 
-    public Function<T, ElementAbstraction> getIntermediateResultMapper() {
+    public Function<T, Map<String, Object>> getIntermediateResultMapper() {
         return intermediateResultMapper;
     }
 
-    public OverridenDefaults<T> setIntermediateResultMapper(Function<T, ElementAbstraction> intermediateResultMapper) {
+    public OverridenDefaults<T> setIntermediateResultMapper(Function<T, Map<String, Object>> intermediateResultMapper) {
         this.intermediateResultMapper = intermediateResultMapper;
-        checkValidity(intermediateResultMapper);
+        checkValidity();
         return this;
     }
 
-    public Function<T, Collection<ElementAbstraction>> getIntermediateResultsMapper() {
+    public Function<T, Collection<Map<String, Object>>> getIntermediateResultsMapper() {
         return intermediateResultsMapper;
     }
 
-    public OverridenDefaults<T> setIntermediateResultsMapper(Function<T, Collection<ElementAbstraction>> intermediateResultsMapper) {
+    public OverridenDefaults<T> setIntermediateResultsMapper(Function<T, Collection<Map<String, Object>>> intermediateResultsMapper) {
         this.intermediateResultsMapper = intermediateResultsMapper;
-        checkValidity(intermediateResultMapper);
+        checkValidity();
         return this;
     }
 }

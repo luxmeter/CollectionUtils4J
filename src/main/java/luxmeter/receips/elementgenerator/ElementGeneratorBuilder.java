@@ -63,34 +63,15 @@ public final class ElementGeneratorBuilder<T> {
         List<List<?>> valueRanges = keyPropertyMetadataSet.getValueRanges();
         List<List<Object>> productOfAllValues =
                 product((Collection[]) valueRanges.toArray(new List[valueRanges.size()]));
-        List<Map<String, ?>> namedProductOfAllValues = attachNames(productOfAllValues);
+        List<Map<String, Object>> namedProductOfAllValues = attachNames(productOfAllValues);
         return namedProductOfAllValues.stream().map(map -> new ElementAbstraction(
                 null, map, keyPropertyMetadataSet.getToStringMapper())).collect(Collectors.toSet());
     }
 
-    private List<Map<String, ?>> attachNames(List<List<Object>> productOfAllValues) {
+    private List<Map<String, Object>> attachNames(List<List<Object>> productOfAllValues) {
         return productOfAllValues.stream()
                 .map(singleCombination -> keyPropertyMetadataSet.getPropertyValues(singleCombination))
                 .collect(Collectors.toList());
-    }
-
-    private void injectDependenciesIntoIntermediateResultMappers() {
-        if (intermediateResultMapper != null) {
-            final Function<T, ElementAbstraction> oldIntermediateResultMapper = intermediateResultMapper;
-            intermediateResultMapper = concreteElement -> {
-                ElementAbstraction e = oldIntermediateResultMapper.apply(concreteElement);
-                e.setToStringMapper(keyPropertyMetadataSet.getToStringMapper());
-                return e;
-            };
-        }
-        else if (intermediateResultsMapper != null) {
-            final Function<T, Collection<ElementAbstraction>> oldIntermediateResultsMapper = intermediateResultsMapper;
-            intermediateResultsMapper = concreteElement -> {
-                Collection<ElementAbstraction> result = oldIntermediateResultsMapper.apply(concreteElement);
-                result.forEach(e -> e.setToStringMapper(keyPropertyMetadataSet.getToStringMapper()));
-                return result;
-            };
-        }
     }
 
     public ElementGeneratorBuilder<T> withExistingElements(Collection<T> existingElements) {
@@ -130,8 +111,23 @@ public final class ElementGeneratorBuilder<T> {
     }
 
     public ElementGeneratorBuilder<T> withOverridenDefaults(OverridenDefaults<T> overridenDefaults) {
-        this.intermediateResultMapper = overridenDefaults.getIntermediateResultMapper();
-        this.intermediateResultsMapper = overridenDefaults.getIntermediateResultsMapper();
+        if (overridenDefaults.getIntermediateResultMapper() != null) {
+            this.intermediateResultMapper = concreteElement -> {
+                Function<T, Map<String, Object>> mapper = overridenDefaults.getIntermediateResultMapper();
+                return new ElementAbstraction(
+                        concreteElement, mapper.apply(concreteElement), keyPropertyMetadataSet.getToStringMapper());
+            };
+        }
+        else {
+            this.intermediateResultsMapper = concreteElement -> {
+                Function<T, Collection<Map<String, Object>>> mappers = overridenDefaults.getIntermediateResultsMapper();
+                Collection<Map<String, Object>> maps = mappers.apply(concreteElement);
+                return maps.stream()
+                        .map(map -> new ElementAbstraction(
+                                concreteElement, map, keyPropertyMetadataSet.getToStringMapper()))
+                        .collect(Collectors.toList());
+            };
+        }
         return this;
     }
 
@@ -145,10 +141,6 @@ public final class ElementGeneratorBuilder<T> {
             } else {
                 intermediateResultMapper = createIntermediateResultMapper();
             }
-        }
-        // inject into custom user provided mappers
-        else {
-            injectDependenciesIntoIntermediateResultMappers();
         }
 
         return new ElementGenerator<>(this);

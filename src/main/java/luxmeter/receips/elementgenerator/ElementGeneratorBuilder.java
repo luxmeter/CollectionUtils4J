@@ -5,7 +5,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static luxmeter.collectionutils.CollectionUtils.*;
+import static luxmeter.collectionutils.CollectionUtils.product;
 
 public final class ElementGeneratorBuilder<T> {
     private KeyPropertyMetadataSet<T> keyPropertyMetadataSet = new KeyPropertyMetadataSet<T>();
@@ -14,7 +14,6 @@ public final class ElementGeneratorBuilder<T> {
     private Collection<ElementAbstraction> intermediateEndResult; // goal
     private Function<ElementAbstraction, T> elementConstructor;
 
-    private Function<T, ElementAbstraction> intermediateResultMapper;
     private Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
     private List<Reducer<T>> reducers = new ArrayList<>();
 
@@ -54,7 +53,7 @@ public final class ElementGeneratorBuilder<T> {
     }
 
     private boolean intermediateResultMappersExist() {
-        return intermediateResultMapper != null || intermediateResultsMapper != null;
+        return intermediateResultsMapper != null;
     }
 
     @SuppressWarnings("unchecked")
@@ -121,11 +120,12 @@ public final class ElementGeneratorBuilder<T> {
 
     public ElementGeneratorBuilder<T> withOverridenDefaults(OverridenDefaults<T> overridenDefaults) {
         if (overridenDefaults.getIntermediateResultMapper() != null) {
-            this.intermediateResultMapper = concreteElement -> {
+             Function<T, ElementAbstraction> intermediateResultMapper = concreteElement -> {
                 Function<T, Map<String, Object>> mapper = overridenDefaults.getIntermediateResultMapper();
                 return new ElementAbstraction(
                         concreteElement, mapper.apply(concreteElement), keyPropertyMetadataSet.getToStringMapper());
             };
+            this.intermediateResultsMapper = wrapIntoResultsMapper(intermediateResultMapper);
         }
         else {
             this.intermediateResultsMapper = concreteElement -> {
@@ -140,6 +140,10 @@ public final class ElementGeneratorBuilder<T> {
         return this;
     }
 
+    private Function<T, Collection<ElementAbstraction>> wrapIntoResultsMapper(Function<T, ElementAbstraction> intermediateResultMapper) {
+        return e -> Collections.singletonList(intermediateResultMapper.apply(e));
+    }
+
     @SuppressWarnings("unchecked")
     public ElementGenerator<T> build() {
         intermediateEndResult = createIntermediateEndResult();
@@ -148,7 +152,7 @@ public final class ElementGeneratorBuilder<T> {
             if (keyPropertyMetadataSet.atLeastOnePropertyIsACollection()) {
                 intermediateResultsMapper = createIntermediateResultsMapper();
             } else {
-                intermediateResultMapper = createIntermediateResultMapper();
+                intermediateResultsMapper = wrapIntoResultsMapper(createIntermediateResultMapper());
             }
         }
 
@@ -169,10 +173,6 @@ public final class ElementGeneratorBuilder<T> {
 
     Function<ElementAbstraction, T> getElementConstructor() {
         return elementConstructor;
-    }
-
-    Function<T, ElementAbstraction> getIntermediateResultMapper() {
-        return intermediateResultMapper;
     }
 
     Function<T, Collection<ElementAbstraction>> getIntermediateResultsMapper() {

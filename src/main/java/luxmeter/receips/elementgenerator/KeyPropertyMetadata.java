@@ -11,20 +11,6 @@ final class KeyPropertyMetadata<T, R> {
     private final Collection<R> valuesRange;
     private final boolean isCollection;
 
-    private Function<T, Object> nonNullValueExtractor(String propertyName, Function<T, ?> valueExtractor) {
-        return concreteElement -> {
-            Object val = valueExtractor.apply(concreteElement);
-            if (isNullOrEmpty(val)) {
-                throw new IllegalArgumentException(
-                        String.format("Error while extracting values from %s: " +
-                                        "It is forbidden for a key property like '%s' " +
-                                        "to return null or an empty collection (or collection with null elements).",
-                                concreteElement.toString(), propertyName));
-            }
-            return val;
-        };
-    }
-
     @SuppressWarnings("unchecked")
     private boolean isNullOrEmpty(Object val) {
         if (val instanceof Collection) {
@@ -37,7 +23,7 @@ final class KeyPropertyMetadata<T, R> {
             String propertyName, SingleValueExtractor<T, R> valueExtractor,
             Collection<R> valuesRange, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
-        this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
+        this.valueExtractor = valueExtractor;
         this.valuesRange = valuesRange;
         this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = false;
@@ -47,7 +33,7 @@ final class KeyPropertyMetadata<T, R> {
             String propertyName, ValuesExtractor<T, R, C> valueExtractor,
             Collection<R> valuesRange, boolean isCollection, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
-        this.valueExtractor = nonNullValueExtractor(propertyName, valueExtractor);
+        this.valueExtractor = valueExtractor;
         this.valuesRange = valuesRange;
         this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = isCollection;

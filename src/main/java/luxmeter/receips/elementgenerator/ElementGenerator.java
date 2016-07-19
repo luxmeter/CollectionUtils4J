@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static luxmeter.collectionutils.CollectionUtils.removeAll;
 
@@ -16,7 +17,6 @@ public final class ElementGenerator<T> {
     private final Function<ElementAbstraction, T> elementConstructor;
 
     private final Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
-    private final Function<T, ElementAbstraction> intermediateResultMapper;
     private final List<Reducer<T>> reducers;
 
     ElementGenerator(ElementGeneratorBuilder<T> builder) {
@@ -24,17 +24,10 @@ public final class ElementGenerator<T> {
         Objects.requireNonNull(builder.getIntermediateEndResult());
         Objects.requireNonNull(builder.getElementConstructor());
 
-        if ((builder.getIntermediateResultMapper() != null) == (builder.getIntermediateResultsMapper() != null)) {
-            throw new IllegalArgumentException(
+        Objects.requireNonNull(builder.getIntermediateResultsMapper(),
                     "Either an intermediateResultMapper or intermediateResult[s]Mapper must be passed in.");
-        }
 
-        this.intermediateResultMapper = builder.getIntermediateResultMapper();
-        if (intermediateResultMapper != null) {
-            this.intermediateResultsMapper = e -> Collections.singletonList(intermediateResultMapper.apply(e));
-        } else {
-            this.intermediateResultsMapper = builder.getIntermediateResultsMapper();
-        }
+        this.intermediateResultsMapper = builder.getIntermediateResultsMapper();
 
         this.existingConcreteElements = new HashSet<>(builder.getExistingElements());
         this.intermediateEndResult = new HashSet<>(builder.getIntermediateEndResult());
@@ -47,8 +40,10 @@ public final class ElementGenerator<T> {
     }
 
     public Set<T> generateMissingElements(MergeType merged) {
+        DuplicateSafeIntermediateResultsMapper duplicateSafeIntermediateResultsMapper =
+                new DuplicateSafeIntermediateResultsMapper();
         Set<ElementAbstraction> existingAbstractElements = existingConcreteElements.stream()
-                .flatMap(e -> intermediateResultsMapper.apply(e).stream())
+                .flatMap(duplicateSafeIntermediateResultsMapper::apply)
                 .collect(Collectors.toSet());
 
         Set<ElementAbstraction> missingAbstractElements = removeAll(intermediateEndResult, existingAbstractElements);
@@ -62,6 +57,29 @@ public final class ElementGenerator<T> {
         }
 
         return generatedMissingConcreteElements;
+    }
+
+    private final class DuplicateSafeIntermediateResultsMapper
+            implements Function<T, Stream<? extends ElementAbstraction>> {
+        private final List<ElementAbstraction> alreadyMappedAbstractions = new ArrayList<>();
+
+        @Override
+        public Stream<? extends ElementAbstraction> apply(T e) {
+            Collection<ElementAbstraction> abstractions = intermediateResultsMapper.apply(e);
+            List<ElementAbstraction> knownAbstractions =
+                    abstractions.stream().filter(alreadyMappedAbstractions::contains).collect(Collectors.toList());
+            if (!knownAbstractions.isEmpty()) {
+                throw new IllegalArgumentException(String.format(
+                        "Error: Existing concrete elements were mapped to " +
+                                "abstract elements that have been constructed already (%s).\n" +
+                                "Check your list of existing elements for duplicates " +
+                                "and conflicting key property values.",
+                        knownAbstractions
+                        ));
+            }
+            alreadyMappedAbstractions.addAll(abstractions);
+            return abstractions.stream();
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -1,9 +1,6 @@
 package luxmeter.receips.elementgenerator;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -16,6 +13,12 @@ public final class ElementAbstraction {
                        Map<String, Function<Object, String>> toStringMapper) {
         this.sourceElement = sourceElement;
         this.keyPropertyValues = keyPropertyValues;
+        List<Map.Entry<String, Object>> nullOrEmptyValues = keyPropertyValues.entrySet().stream().filter(e -> (e.getValue() instanceof Collection && ((Collection) e.getValue()).isEmpty()) || e.getValue() == null).collect(Collectors.toList());
+        if (!nullOrEmptyValues.isEmpty()) {
+            throw new IllegalArgumentException(
+                    String.format("It is forbidden for key properties to return null or an empty collections (or collection with null elements): %s",
+                            nullOrEmptyValues));
+        }
         keyPropertyValuesAsString = keyPropertyValues.entrySet().stream()
                 .map(entry -> toStringMapper.getOrDefault(entry.getKey(), Objects::toString).apply(entry.getValue()))
                 .collect(Collectors.toList());
@@ -45,5 +48,14 @@ public final class ElementAbstraction {
 
     public Map<String, Object> getProperties() {
         return new HashMap<>(keyPropertyValues);
+    }
+
+    @Override
+    public String toString() {
+        List<String> mapAsString = keyPropertyValues.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.toList());
+        String repr = mapAsString.stream().collect(Collectors.joining(",", "<ElementAbstraction{", "}>"));
+        return repr;
     }
 }

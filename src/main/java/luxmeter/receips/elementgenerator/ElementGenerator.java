@@ -14,13 +14,13 @@ import static luxmeter.collectionutils.CollectionUtils.removeAll;
 public final class ElementGenerator<T> {
     private final Set<T> existingConcreteElements;
     private final Set<ElementAbstraction> intermediateEndResult; // goal
-    private final Function<ElementAbstraction, T> elementConstructor;
+    private final ElementFactory<T> elementConstructor;
 
     private final Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
     private final List<Reducer<T>> reducers;
 
     ElementGenerator(ElementGeneratorBuilder<T> builder) {
-        Objects.requireNonNull(builder.getExistingElements());
+        Objects.requireNonNull(builder.getExistingElements(), "Did you forget to specify the already existing elements?");
         Objects.requireNonNull(builder.getIntermediateEndResult());
         Objects.requireNonNull(builder.getElementConstructor());
 
@@ -49,7 +49,7 @@ public final class ElementGenerator<T> {
         Set<ElementAbstraction> missingAbstractElements = removeAll(intermediateEndResult, existingAbstractElements);
 
         Set<T> generatedMissingConcreteElements = missingAbstractElements.stream()
-                .map(elementConstructor)
+                .map(elementAbstraction -> elementConstructor.createConcreteElement(missingAbstractElements, elementAbstraction))
                 .collect(Collectors.toSet());
 
         if (merged == MergeType.MERGED && !reducers.isEmpty()) {

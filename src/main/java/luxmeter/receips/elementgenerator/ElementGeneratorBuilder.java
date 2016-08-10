@@ -12,7 +12,7 @@ public final class ElementGeneratorBuilder<T> {
 
     private Collection<T> existingElements;
     private Collection<ElementAbstraction> intermediateEndResult; // goal
-    private Function<ElementAbstraction, T> elementConstructor;
+    private ElementFactory<T> elementConstructor;
 
     private Function<T, Collection<ElementAbstraction>> intermediateResultsMapper;
     private List<Reducer<T>> reducers = new ArrayList<>();
@@ -72,12 +72,17 @@ public final class ElementGeneratorBuilder<T> {
                 .collect(Collectors.toList());
     }
 
-    public ElementGeneratorBuilder<T> withExistingElements(Collection<T> existingElements) {
-        this.existingElements = existingElements;
+    public ElementGeneratorBuilder<T> withExistingElements(Collection<? extends T> existingElements) {
+        this.existingElements = (Collection<T>) existingElements;
         return this;
     }
 
     public ElementGeneratorBuilder<T> withElementFactory(Function<ElementAbstraction, T> elementConstructor) {
+        withElementFactory((allGeneratedElements, toGenerateFrom) -> elementConstructor.apply(toGenerateFrom));
+        return this;
+    }
+
+    public ElementGeneratorBuilder<T> withElementFactory(ElementFactory<T> elementConstructor) {
         this.elementConstructor = elementConstructor;
         return this;
     }
@@ -171,7 +176,7 @@ public final class ElementGeneratorBuilder<T> {
         return intermediateEndResult;
     }
 
-    Function<ElementAbstraction, T> getElementConstructor() {
+    ElementFactory<T> getElementConstructor() {
         return elementConstructor;
     }
 

@@ -24,9 +24,16 @@ final class KeyPropertyMetadata<T, R> {
             Collection<R> valuesRange, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
         this.valueExtractor = valueExtractor;
-        this.valuesRange = valuesRange;
+        this.valuesRange = checkedValuesRange(valuesRange);
         this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = false;
+    }
+
+    private Collection<R> checkedValuesRange(Collection<R> valuesRange) {
+        if (isNullOrEmpty(valuesRange)) {
+            throw new IllegalArgumentException(String.format("%s: Range cannot be null or empty", this.propertyName));
+        }
+        return valuesRange;
     }
 
     public <C extends Collection<R>> KeyPropertyMetadata(
@@ -34,7 +41,7 @@ final class KeyPropertyMetadata<T, R> {
             Collection<R> valuesRange, boolean isCollection, Function<R, String> toStringMapper) {
         this.propertyName = propertyName;
         this.valueExtractor = valueExtractor;
-        this.valuesRange = valuesRange;
+        this.valuesRange = checkedValuesRange(valuesRange);
         this.toStringMapper = toStringMapper == null ? Object::toString : (Function<Object, String>) toStringMapper;
         this.isCollection = isCollection;
     }

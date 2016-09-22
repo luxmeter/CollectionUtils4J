@@ -9,7 +9,8 @@ import java.util.stream.Stream;
 import static luxmeter.collectionutils.CollectionUtils.removeAll;
 
 /**
- *
+ * Recipe to generate missing elements for a collection.
+ * @see ElementGeneratorBuilder
  */
 public final class ElementGenerator<T> {
     private final Set<T> existingConcreteElements;
@@ -35,10 +36,18 @@ public final class ElementGenerator<T> {
         this.reducers = new ArrayList<>(builder.getReducers());
     }
 
+    /**
+     * @return all missing elements (not merged)
+     * @see #generateMissingElements(MergeType)
+     */
     public Set<T> generateMissingElements() {
         return generateMissingElements(MergeType.NOT_MERGED);
     }
 
+    /**
+     * @param merged if the elements should be merged via the provided reducers
+     * @return all missing elements
+     */
     public Set<T> generateMissingElements(MergeType merged) {
         DuplicateSafeIntermediateResultsMapper duplicateSafeIntermediateResultsMapper =
                 new DuplicateSafeIntermediateResultsMapper();
@@ -83,7 +92,7 @@ public final class ElementGenerator<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public Set<T> reduce(Set<T> generatedMissingConcreteElements, List<Reducer<T>> reducers) {
+    private Set<T> reduce(Set<T> generatedMissingConcreteElements, List<Reducer<T>> reducers) {
         if (reducers.isEmpty()) {
             return generatedMissingConcreteElements;
         }

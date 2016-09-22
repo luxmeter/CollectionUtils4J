@@ -58,9 +58,9 @@ public class CommonUsecasesWithSimpleObjectsTest {
         ElementGeneratorBuilder<SimplifiedRate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(simplifiedRates)
-                .withKeyProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
-                .withKeyProperty("product", applicableProducts, SimplifiedRate::getProduct)
-                .withKeyProperty("zone", applicableZones, SimplifiedRate::getZone)
+                .withSingleValueProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
+                .withSingleValueProperty("product", applicableProducts, SimplifiedRate::getProduct)
+                .withSingleValueProperty("zone", applicableZones, SimplifiedRate::getZone)
                 .withElementFactory(abstractElement -> new SimplifiedRate(
                         abstractElement.get("chargeCode"),
                         abstractElement.get("product"),
@@ -100,15 +100,15 @@ public class CommonUsecasesWithSimpleObjectsTest {
         ElementGeneratorBuilder<SimplifiedRate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(simplifiedRates)
-                .withKeyProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
-                .withKeyProperty("product", applicableProducts, SimplifiedRate::getProduct)
-                .withKeyProperty("zone", applicableZones, SimplifiedRate::getZone)
+                .withSingleValueProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
+                .withSingleValueProperty("product", applicableProducts, SimplifiedRate::getProduct)
+                .withSingleValueProperty("zone", applicableZones, SimplifiedRate::getZone)
                 .withElementFactory(abstractElement -> new SimplifiedRate(
                         abstractElement.get("chargeCode"),
                         abstractElement.get("product"),
                         abstractElement.get("zone"))
                 )
-                .withOverridenDefaults(OverridenDefaults.<SimplifiedRate>create()
+                .withOverriddenDefaults(OverriddenDefaults.<SimplifiedRate>create()
                         .setIntermediateResultMapper(this::createIntermediateResultMapper));
 
         ElementGenerator<SimplifiedRate> elementGenerator = elementGeneratorBuilder.build();
@@ -139,9 +139,9 @@ public class CommonUsecasesWithSimpleObjectsTest {
         ElementGeneratorBuilder<SimplifiedRate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(empty)
-                .withKeyProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
-                .withKeyProperty("product", applicableProducts, SimplifiedRate::getProduct)
-                .withKeyProperty("zone", applicableZones, SimplifiedRate::getZone)
+                .withSingleValueProperty("chargeCode", allChargeCodes, SimplifiedRate::getChargeCode)
+                .withSingleValueProperty("product", applicableProducts, SimplifiedRate::getProduct)
+                .withSingleValueProperty("zone", applicableZones, SimplifiedRate::getZone)
                 .withElementFactory(abstractElement -> new SimplifiedRate(
                         abstractElement.get("chargeCode"),
                         abstractElement.get("product"),

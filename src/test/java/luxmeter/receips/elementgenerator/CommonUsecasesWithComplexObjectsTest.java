@@ -7,7 +7,14 @@ import luxmeter.receips.elementgenerator.model.Zone;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -55,15 +62,13 @@ public class CommonUsecasesWithComplexObjectsTest {
     private List<Rate> createRatesWithoutZones() {
         return asList(
                 createRate("5500", "someName", PX, TX),
-                createRate("5510", "someName", PX)
-        );
+                createRate("5510", "someName", PX));
     }
 
     private List<Rate> createRatesWithZones() {
         return asList(
                 new Rate(new ChargeCode("5500", "someName"), EnumSet.of(PX, TX), EnumSet.of(A, B)),
-                new Rate(new ChargeCode("5510", "someName"), EnumSet.of(PX), EnumSet.of(A))
-        );
+                new Rate(new ChargeCode("5510", "someName"), EnumSet.of(PX), EnumSet.of(A)));
     }
 
     private Rate mergeByZones(Rate a, Rate b) {
@@ -111,16 +116,16 @@ public class CommonUsecasesWithComplexObjectsTest {
                 .collect(Collectors.toList());
 
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        ValuesExtractor<Rate, Product, Set<Product>> productExtractor = Rate::getProducts;
         elementGeneratorBuilder
                 .withExistingElements(existingRates)
                 // would fail without specifying how to obtain the unique string representation
-                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
-                .withKeyProperty("product", applicableProducts, Rate::getProducts)
+                .withSingleValueProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
+                .withCollectionProperty("product", applicableProducts, productExtractor)
                 .withElementFactory(abstractElement -> new Rate(
                         abstractElement.get("chargeCode"),
                         singleton(abstractElement.get("product")),
-                        Collections.emptySet())
-                );
+                        Collections.emptySet()));
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
         Set<Rate> generatedMissingSimpleRates = elementGenerator.generateMissingElements();
@@ -130,8 +135,7 @@ public class CommonUsecasesWithComplexObjectsTest {
                 containsInAnyOrder(
                         createRate("5500", "someName", XX),
                         createRate("5510", "someName", TX),
-                        createRate("5510", "someName", XX)
-                ));
+                        createRate("5510", "someName", XX)));
     }
 
     /**
@@ -147,16 +151,17 @@ public class CommonUsecasesWithComplexObjectsTest {
                 .collect(Collectors.toList());
 
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
+        ValuesExtractor<Rate, Product, Set<Product>> productExtractor = Rate::getProducts;
+        ValuesExtractor<Rate, Zone, Set<Zone>> zoneExtractor = Rate::getZones;
         elementGeneratorBuilder
                 .withExistingElements(existingRates)
-                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
-                .withKeyProperty("product", applicableProducts, Rate::getProducts)
-                .withKeyProperty("zone", applicableZones, Rate::getZones)
+                .withSingleValueProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
+                .withCollectionProperty("product", applicableProducts, productExtractor)
+                .withCollectionProperty("zone", applicableZones, zoneExtractor)
                 .withElementFactory(abstractElement -> new Rate(
                         abstractElement.get("chargeCode"),
                         singleton(abstractElement.get("product")),
-                        singleton(abstractElement.get("zone")))
-                );
+                        singleton(abstractElement.get("zone"))));
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
         Set<Rate> generatedMissingSimpleRates = elementGenerator.generateMissingElements();
@@ -170,8 +175,7 @@ public class CommonUsecasesWithComplexObjectsTest {
                         createRate("5510", "someName", TX, A),
                         createRate("5510", "someName", TX, B),
                         createRate("5510", "someName", XX, A),
-                        createRate("5510", "someName", XX, B)
-                ));
+                        createRate("5510", "someName", XX, B)));
     }
 
     /**
@@ -186,21 +190,22 @@ public class CommonUsecasesWithComplexObjectsTest {
                 .map(Rate::getChargeCode)
                 .collect(Collectors.toList());
 
+        ValuesExtractor<Rate, Product, Set<Product>> productExtractor = Rate::getProducts;
+
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(existingRates)
-                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
-                .withKeyProperty("product", applicableProducts, Rate::getProducts)
+                .withSingleValueProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
+                .withCollectionProperty("product", applicableProducts, productExtractor)
                 .withElementFactory(abstractElement -> new Rate(
                         abstractElement.get("chargeCode"),
                         singleton(abstractElement.get("product")),
-                        Collections.emptySet())
-                ).withReducer(Rate::getChargeCode,
-                (rate1, rate2) -> new Rate(
-                        rate1.getChargeCode(),
-                        chain(rate1.getProducts(), rate2.getProducts()),
-                        Collections.emptySet())
-        );
+                        Collections.emptySet()))
+                .withReducer(Rate::getChargeCode,
+                        (rate1, rate2) -> new Rate(
+                                rate1.getChargeCode(),
+                                chain(rate1.getProducts(), rate2.getProducts()),
+                                Collections.emptySet()));
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
         Set<Rate> generatedMissingSimpleRates = elementGenerator.generateMissingElements(MERGED);
@@ -209,10 +214,8 @@ public class CommonUsecasesWithComplexObjectsTest {
         assertThat(generatedMissingSimpleRates,
                 containsInAnyOrder(
                         createRate("5500", "someName", XX),
-                        createRate("5510", "someName", TX, XX)
-                ));
+                        createRate("5510", "someName", TX, XX)));
     }
-
 
     /**
      * Tests if complex objects with multiple key properties being collections can be generated and merged.
@@ -226,17 +229,19 @@ public class CommonUsecasesWithComplexObjectsTest {
                 .map(Rate::getChargeCode)
                 .collect(Collectors.toList());
 
+        ValuesExtractor<Rate, Product, Set<Product>> productExtractor = Rate::getProducts;
+        ValuesExtractor<Rate, Zone, Set<Zone>> zoneExtractor = Rate::getZones;
+
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(existingRates)
-                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
-                .withKeyProperty("product", applicableProducts, Rate::getProducts)
-                .withKeyProperty("zone", applicableZones, Rate::getZones)
+                .withSingleValueProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
+                .withCollectionProperty("product", applicableProducts, productExtractor)
+                .withCollectionProperty("zone", applicableZones, zoneExtractor)
                 .withElementFactory(abstractElement -> new Rate(
                         abstractElement.get("chargeCode"),
                         singleton(abstractElement.get("product")),
-                        singleton(abstractElement.get("zone")))
-                )
+                        singleton(abstractElement.get("zone"))))
                 .withReducers(
                         Reducer.create(this::groupByChargeCodeAndProduct, this::mergeByZones),
                         Reducer.create(this::groupByChargeCodeAndZone, this::mergeByProducts));
@@ -249,8 +254,7 @@ public class CommonUsecasesWithComplexObjectsTest {
                 containsInAnyOrder(
                         createRate("5500", "someName", singleton(XX), asList(A, B)),
                         createRate("5510", "someName", PX, B),
-                        createRate("5510", "someName", asList(TX, XX), asList(A, B))
-                ));
+                        createRate("5510", "someName", asList(TX, XX), asList(A, B))));
     }
 
     /**
@@ -267,18 +271,19 @@ public class CommonUsecasesWithComplexObjectsTest {
                 .map(Rate::getChargeCode)
                 .collect(Collectors.toList());
 
+        ValuesExtractor<Rate, Product, Set<Product>> productExtractor = Rate::getProducts;
+
         ElementGeneratorBuilder<Rate> elementGeneratorBuilder = ElementGeneratorBuilder.create();
         elementGeneratorBuilder
                 .withExistingElements(existingRates)
                 // would fail without specifying how to obtain the unique string representation
-                .withKeyProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
-                .withKeyProperty("product", applicableProducts, Rate::getProducts)
+                .withSingleValueProperty("chargeCode", allChargeCodes, Rate::getChargeCode, ChargeCode::getCode)
+                .withCollectionProperty("product", applicableProducts, productExtractor)
                 .withElementFactory(abstractElement -> new Rate(
                         abstractElement.get("chargeCode"),
                         singleton(abstractElement.get("product")),
-                        Collections.emptySet())
-                )
-                .withOverridenDefaults(OverridenDefaults.<Rate>create()
+                        Collections.emptySet()))
+                .withOverriddenDefaults(OverriddenDefaults.<Rate> create()
                         .setIntermediateResultsMapper(this::createIntermediateResultsMapper));
 
         ElementGenerator<Rate> elementGenerator = elementGeneratorBuilder.build();
@@ -287,7 +292,6 @@ public class CommonUsecasesWithComplexObjectsTest {
         assertThat(generatedMissingSimpleRates, hasSize(1));
         assertThat(generatedMissingSimpleRates,
                 containsInAnyOrder(
-                        createRate("5500", "someName", XX)
-                ));
+                        createRate("5500", "someName", XX)));
     }
 }

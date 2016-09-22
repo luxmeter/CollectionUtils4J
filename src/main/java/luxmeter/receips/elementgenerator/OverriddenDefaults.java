@@ -5,9 +5,11 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- *
+ * Builder to override default behaviour of the {@link ElementGeneratorBuilder}.
+ * Used by {@link ElementGeneratorBuilder#withOverriddenDefaults(OverriddenDefaults)}
+ * @see ElementGeneratorBuilder
  */
-public final class OverridenDefaults<T> {
+public final class OverriddenDefaults<T> {
     private Function<T, Map<String, Object>> intermediateResultMapper;
     private Function<T, Collection<Map<String, Object>>> intermediateResultsMapper;
 
@@ -19,28 +21,43 @@ public final class OverridenDefaults<T> {
         }
     }
 
-    private OverridenDefaults() {
+    private OverriddenDefaults() {
     }
 
-    public static <T> OverridenDefaults<T> create() {
-        return new OverridenDefaults<>();
+    /**
+     * Constructor
+     * @param <T> concrete element type
+     * @return this
+     */
+    public static <T> OverriddenDefaults<T> create() {
+        return new OverriddenDefaults<>();
     }
 
+    /**
+     * @return the IntermediateResultMapper
+     */
     public Function<T, Map<String, Object>> getIntermediateResultMapper() {
         return intermediateResultMapper;
     }
 
-    public OverridenDefaults<T> setIntermediateResultMapper(Function<T, Map<String, Object>> intermediateResultMapper) {
+    public OverriddenDefaults<T> setIntermediateResultMapper(Function<T, Map<String, Object>> intermediateResultMapper) {
         this.intermediateResultMapper = intermediateResultMapper;
         checkValidity();
         return this;
     }
 
+    /**
+     * @return the IntermediateResultsMapper
+     */
     public Function<T, Collection<Map<String, Object>>> getIntermediateResultsMapper() {
         return intermediateResultsMapper;
     }
 
-    public OverridenDefaults<T> setIntermediateResultsMapper(Function<T, Collection<Map<String, Object>>> intermediateResultsMapper) {
+    /**
+     * @param intermediateResultsMapper creates an abstraction of an concrete element in form of a Map
+     * @return the intermediateResultsMapper
+     */
+    public OverriddenDefaults<T> setIntermediateResultsMapper(Function<T, Collection<Map<String, Object>>> intermediateResultsMapper) {
         this.intermediateResultsMapper = intermediateResultsMapper;
         checkValidity();
         return this;

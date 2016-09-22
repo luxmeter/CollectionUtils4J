@@ -4,14 +4,17 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
 public abstract class Functions {
+    private static final Logger LOGGER = Logger.getLogger(Functions.class.getName());
+
     private Functions() {
 
     }
@@ -56,7 +59,7 @@ public abstract class Functions {
                 return (R) method.invoke(function,
                         Stream.of(args).map(arg -> arg.orElse(() -> rawArguments[counter.get()])).toArray());
             } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Unable to create partial function.", e);
             }
             return null;
         };

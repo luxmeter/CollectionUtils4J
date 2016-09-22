@@ -219,6 +219,7 @@ public final class CollectionUtils {
         int size = first.size();
         for (List<T> other : others) {
             size += other.size();
+            // fdfdf
         }
         ArrayList<T> result = new ArrayList<>(size);
         result.addAll(first);
